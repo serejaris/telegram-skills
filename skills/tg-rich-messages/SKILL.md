@@ -1,10 +1,8 @@
 ---
 name: tg-rich-messages
-description: >
-  Use when sending structured or richly formatted messages from a Telegram bot — tables,
-  section headings, collapsible blocks, photo galleries, maps, math formulas, audio, or
-  streaming AI responses. Also use for understanding rich message types and limits when
-  plain sendMessage with parse_mode HTML/Markdown is not sufficient.
+description: "Use when sending structured or richly formatted messages from a Telegram bot — tables, section headings, collapsible blocks, photo galleries, maps, math formulas, audio, or streaming AI responses. Also use for understanding rich message types and limits when plain sendMessage with parse_mode HTML/Markdown is not sufficient."
+license: MIT
+compatibility: "Requires network access to api.telegram.org; sending requires TELEGRAM_BOT_TOKEN env var; scripts need Python 3 stdlib only."
 ---
 
 # tg-rich-messages

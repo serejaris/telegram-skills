@@ -1,12 +1,8 @@
 ---
 name: tg-markdown-to-rich
-description: >
-  Use when converting Markdown documents, reports, or any text content into a
-  Telegram Rich Message for delivery via a bot. Triggers on: "send markdown to
-  Telegram", "convert doc to rich message", "publish report to bot", "format
-  markdown for sendRichMessage", "telegram rich message from file". Produces a
-  JSON object (InputRichMessage) ready for the Telegram Bot API 10.1
-  sendRichMessage method.
+description: "Use when converting Markdown documents, reports, or any text content into a Telegram Rich Message for delivery via a bot. Triggers: \"send markdown to Telegram\", \"convert doc to rich message\", \"publish report to bot\", \"format markdown for sendRichMessage\", \"telegram rich message from file\". Produces an InputRichMessage JSON object ready for Telegram Bot API 10.1 sendRichMessage."
+license: MIT
+compatibility: "Requires network access to api.telegram.org; sending requires TELEGRAM_BOT_TOKEN env var; scripts need Python 3 stdlib only."
 ---
 
 # tg-markdown-to-rich

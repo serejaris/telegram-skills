@@ -1,0 +1,15 @@
+{
+  "name": "telegram-skills",
+  "owner": {
+    "name": "serejaris"
+  },
+  "plugins": [
+    {
+      "name": "telegram-skills",
+      "source": "./",
+      "description": "Telegram Bot API 10.1 Rich Messages skills: send structured documents, tables, galleries, maps, and stream AI replies from any bot",
+      "version": "1.0.0",
+      "license": "MIT"
+    }
+  ]
+}

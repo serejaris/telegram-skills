@@ -373,7 +373,7 @@ RichBlockParagraph, RichBlockSectionHeading, RichBlockPreformatted, RichBlockFoo
 
 ### RichBlockPhoto
 
-Блок с фото, соответствует HTML-тегу `<photo>`.
+Блок с фото, соответствует HTML-тегу `<img>`.
 
 | Field | Type | Description |
 |---|---|---|

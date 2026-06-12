@@ -1,0 +1,12 @@
+{
+  "name": "telegram-skills",
+  "description": "Telegram Bot API 10.1 Rich Messages skills: send structured documents, tables, galleries, maps, and stream AI replies from any bot",
+  "version": "1.0.0",
+  "author": {
+    "name": "serejaris"
+  },
+  "homepage": "https://github.com/serejaris/telegram-skills",
+  "repository": "https://github.com/serejaris/telegram-skills",
+  "license": "MIT",
+  "keywords": ["telegram", "bot-api", "rich-messages", "streaming", "digest"]
+}

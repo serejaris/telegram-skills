@@ -1,10 +1,8 @@
 ---
 name: tg-rich-digest
-description: >
-  Use when sending daily or weekly digests, community summaries, status reports, or newsletters
-  through a Telegram bot as one structured rich message — instead of a wall of plain text.
-  Triggers: "send weekly digest", "post summary to channel", "newsletter via bot",
-  "community report", "daily status update", "format report as rich message".
+description: "Use when sending daily or weekly digests, community summaries, status reports, or newsletters through a Telegram bot as one structured rich message instead of a wall of plain text. Triggers: \"send weekly digest\", \"post summary to channel\", \"newsletter via bot\", \"community report\", \"daily status update\", \"format report as rich message\"."
+license: MIT
+compatibility: "No required env vars for reference; sending examples require TELEGRAM_BOT_TOKEN and network access to api.telegram.org."
 ---
 
 # tg-rich-digest

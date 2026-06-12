@@ -1,10 +1,52 @@
 # telegram-skills
 
-**Claude Code skills for Telegram Bot API 10.1 Rich Messages** — teach your AI agent to send structured documents, tables, galleries, maps, and streaming AI replies from any Telegram bot.
+**Agent Skills for Telegram Bot API 10.1 Rich Messages** — works with Claude Code, Codex CLI, Cursor, and any agent supporting the [Agent Skills standard (agentskills.io)](https://agentskills.io). Teach your AI agent to send structured documents, tables, galleries, maps, and streaming AI replies from any Telegram bot.
 
 Bot API 10.1 (June 11, 2026) introduced [Rich Messages](https://core.telegram.org/bots/api#rich-message-formatting-options): bots can now send document-grade structured messages (section headings, tables, collapsible sections, photo collages, slideshows, maps, math) and stream AI-generated replies with a native "thinking" block — essentially Instant View articles, right in the chat.
 
 No major bot library supports it yet. These skills work through raw HTTP calls to the Bot API — no dependencies, any stack.
+
+## Install
+
+**Universal (recommended)**
+
+```bash
+npx skills add serejaris/telegram-skills
+
+# Install a single skill
+npx skills add serejaris/telegram-skills --skill tg-rich-messages
+```
+
+**Claude Code (native marketplace)**
+
+```bash
+/plugin marketplace add serejaris/telegram-skills
+/plugin install telegram-skills@telegram-skills
+```
+
+**Codex CLI**
+
+```bash
+npx skills add serejaris/telegram-skills
+# or manually: cp -r skills/* ~/.agents/skills/
+# Inside a clone of this repo, skills are auto-discovered via .agents/skills/
+```
+
+**Manual copy**
+
+```bash
+# Claude Code
+cp -r skills/* ~/.claude/skills/
+
+# Codex CLI / other agents
+cp -r skills/* ~/.agents/skills/
+
+# or per-project
+cp -r skills/* your-project/.claude/skills/
+cp -r skills/* your-project/.agents/skills/
+```
+
+Then ask your agent — e.g. *"send this report to my Telegram channel as a rich message"*.
 
 ## Skills
 
@@ -14,20 +56,6 @@ No major bot library supports it yet. These skills work through raw HTTP calls t
 | [`tg-markdown-to-rich`](skills/tg-markdown-to-rich/) | Convert Markdown into a rich message — write docs, send documents |
 | [`tg-rich-streaming`](skills/tg-rich-streaming/) | Stream LLM output into a chat: draft animation, thinking block, mandatory finalization |
 | [`tg-rich-digest`](skills/tg-rich-digest/) | Digest/report pattern: headings, lists, collapsible sections, photo collage, map embed |
-
-## Install
-
-Copy the skills you need into your skills directory:
-
-```bash
-# personal (all projects)
-cp -r skills/* ~/.claude/skills/
-
-# or per-project
-cp -r skills/* your-project/.claude/skills/
-```
-
-Then just ask your agent — e.g. *"send this report to my Telegram channel as a rich message"*.
 
 ## Reference
 
