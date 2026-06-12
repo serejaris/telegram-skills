@@ -1,5 +1,6 @@
 {
   "name": "telegram-skills",
+  "description": "Agent Skills for Telegram Bot API 10.1 Rich Messages — structured documents, galleries, maps, and streaming AI replies from any bot",
   "owner": {
     "name": "serejaris"
   },
