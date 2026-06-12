@@ -30,7 +30,9 @@ MAX_TABLE_COLS = 20
 # ── Validation helpers ────────────────────────────────────────────────────────
 
 def count_chars(text: str) -> int:
-    return len(text.encode("utf-8").decode("utf-8"))
+    # spec wording is "32768 UTF-8 characters" — counted as Unicode code points here;
+    # byte-length interpretation unverified.
+    return len(text)
 
 
 class LimitError(Exception):

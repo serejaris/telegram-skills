@@ -33,154 +33,144 @@ Recommended block sequence:
 [details]      — "All links / Full list" — long-tail, closed by default
 [divider]      — visual separator before footer
 [collage]      — photo report (optional)
+[map]          — event location (optional)
 [footer]       — date, source, issue number
 ```
 
-### Heading block
+Each element below is shown as **HTML markup** — the string you put inside `InputRichMessage.html`. This is the correct send format; the API accepts only `{"html": "..."}` or `{"markdown": "..."}`.
 
-```json
-{ "type": "heading", "text": "Weekly Digest · Jun 9–15", "size": 2 }
+> **Note:** When you receive the message back, `Message.rich_message` contains the parsed `RichBlock` JSON (e.g. `{"type": "heading", ...}`). That structure is receive-only — you cannot send it.
+
+### Heading
+
+```html
+<h2>Weekly Digest &mdash; Jun 9&ndash;15</h2>
 ```
 
-`size` 1–6 (1 = largest). Use `size: 2` for digest title, `size: 3` for topic sections.
+`<h1>`–`<h6>` map to heading sizes 1–6. Use `<h2>` for the digest title, `<h3>` for topic sections.
 
 ### Lead paragraph
 
-```json
-{ "type": "paragraph", "text": "This week the community hit 1,200 members. Three tools shipped, one hot thread ran 80+ replies." }
+```html
+<p>This week the community hit <b>1,200 members</b>. Three tools shipped, one hot thread ran 80+ replies.</p>
 ```
 
 ### Topic section
 
-```json
-{ "type": "heading", "text": "Top Discussions", "size": 3 },
-{
-  "type": "list",
-  "items": [
-    {
-      "label": "•",
-      "blocks": [{ "type": "paragraph", "text": { "type": "url", "text": "LLM context limits — practical patterns", "url": "https://example.com/thread/42" } }]
-    },
-    {
-      "label": "•",
-      "blocks": [{ "type": "paragraph", "text": "Prompt caching hit 80% savings for one member's pipeline" }]
-    }
-  ]
-}
+```html
+<h3>Top Discussions</h3>
+<ul>
+  <li><a href="https://example.com/thread/42">LLM context limits &mdash; practical patterns</a> &mdash; 81 replies</li>
+  <li><a href="https://example.com/thread/55">Prompt caching deep dive</a> &mdash; 80% cost reduction reported</li>
+</ul>
 ```
 
-`label` is a plain string — the bullet character. For ordered lists set `value` (integer) and optionally `type` (`"1"`, `"a"`, `"A"`, `"i"`, `"I"`).
+For ordered lists use `<ol>` with optional `start`, `type` (`"1"`, `"a"`, `"A"`, `"i"`, `"I"`), and `reversed` attributes on `<ol>`, or `value` on individual `<li>`.
 
 ### Details block — long-tail
 
-Use `details` for content that most readers skip: full link lists, raw stats, appendices.
+Use `<details>` for content most readers skip: full link lists, raw stats, appendices. Omit `open` to collapse by default.
 
-```json
-{
-  "type": "details",
-  "summary": "All links this week (12)",
-  "is_open": false,
-  "blocks": [
-    {
-      "type": "list",
-      "items": [
-        { "label": "1", "blocks": [{ "type": "paragraph", "text": { "type": "url", "text": "Article title", "url": "https://example.com/1" } }] },
-        { "label": "2", "blocks": [{ "type": "paragraph", "text": { "type": "url", "text": "Tool release", "url": "https://example.com/2" } }] }
-      ]
-    }
-  ]
-}
+```html
+<details><summary>All links this week (9)</summary>
+<ol>
+  <li><a href="https://example.com/thread/42">LLM context limits &mdash; practical patterns</a></li>
+  <li><a href="https://example.com/thread/55">Prompt caching deep dive</a></li>
+  <li><a href="https://github.com/example/promptkit">promptkit v0.4 release notes</a></li>
+</ol>
+</details>
 ```
 
-Omit `is_open` or set `false` — block collapses by default. Set `true` only for critical content.
+Add `open` attribute (`<details open>`) only for critical content that should be visible by default.
 
 ### Divider
 
-```json
-{ "type": "divider" }
+```html
+<hr/>
 ```
+
+### Photo collage
+
+All media must use **HTTP or HTTPS URLs** — `file_id` is not accepted in `InputRichMessage`.
+
+```html
+<tg-collage>
+  <figure><img src="https://example.com/photos/meetup-1.jpg"/><figcaption>Berlin meetup · June 10<cite>Photo: @photo_credit</cite></figcaption></figure>
+  <img src="https://example.com/photos/meetup-2.jpg"/>
+  <img src="https://example.com/photos/meetup-3.jpg"/>
+</tg-collage>
+```
+
+Mix `<img>` and `<video src="https://...">` inside `<tg-collage>` freely. Wrap in `<details>` when photos are supplemental.
+
+### Map embed
+
+```html
+<tg-map lat="52.5200" long="13.4050" zoom="15"/>
+```
+
+`zoom` must be 13–20.
 
 ### Footer
 
-```json
-{ "type": "footer", "text": "AI Builders Community · Issue #24 · 2026-06-15" }
+```html
+<footer>AI Builders Community &mdash; Issue #24 &mdash; Week of June 9&ndash;15, 2026</footer>
 ```
 
 ---
 
 ## Media Patterns
 
+All media in `InputRichMessage` must use **HTTP or HTTPS URLs**. `file_id` is a receive-only field in `Message.rich_message` — it cannot be used when sending.
+
 ### Photo collage
 
-Group multiple photos (and optionally videos) into a single tile layout. `caption` is optional; add `credit` for attribution.
+Group multiple photos (and optionally videos) into a single tile layout. Use `<figure>` with `<figcaption>` and `<cite>` for attribution.
 
-```json
-{
-  "type": "collage",
-  "blocks": [
-    { "type": "photo", "photo": [{ "file_id": "PHOTO_FILE_ID_1", "file_unique_id": "…", "width": 1280, "height": 960, "file_size": 204800 }] },
-    { "type": "photo", "photo": [{ "file_id": "PHOTO_FILE_ID_2", "file_unique_id": "…", "width": 1280, "height": 960, "file_size": 198400 }] },
-    { "type": "video", "video": { "file_id": "VIDEO_FILE_ID_1", "file_unique_id": "…", "width": 1280, "height": 720, "duration": 15, "file_size": 2097152 } }
-  ],
-  "caption": {
-    "text": "Photos from the June meetup",
-    "credit": "Photo: @photographer_handle"
-  }
-}
+```html
+<tg-collage>
+  <figure>
+    <img src="https://example.com/photos/meetup-1.jpg"/>
+    <figcaption>Photos from the June meetup<cite>Photo: @photographer_handle</cite></figcaption>
+  </figure>
+  <img src="https://example.com/photos/meetup-2.jpg"/>
+  <video src="https://example.com/videos/highlight.mp4"></video>
+</tg-collage>
 ```
 
-Mix `photo` and `video` blocks freely inside `collage.blocks`.
+Mix `<img>` and `<video>` freely inside `<tg-collage>`.
 
 ### Slideshow — sequential media
 
-Use `slideshow` when order matters (tutorial steps, before/after, event sequence):
+Use `<tg-slideshow>` when order matters (tutorial steps, before/after, event sequence):
 
-```json
-{
-  "type": "slideshow",
-  "blocks": [
-    { "type": "photo", "photo": [{ "file_id": "SLIDE_1", "file_unique_id": "…", "width": 1920, "height": 1080, "file_size": 307200 }] },
-    { "type": "photo", "photo": [{ "file_id": "SLIDE_2", "file_unique_id": "…", "width": 1920, "height": 1080, "file_size": 298000 }] }
-  ],
-  "caption": { "text": "Step-by-step setup guide" }
-}
+```html
+<tg-slideshow>
+  <figure><img src="https://example.com/slides/step-1.jpg"/><figcaption>Step 1: initial setup</figcaption></figure>
+  <figure><img src="https://example.com/slides/step-2.jpg"/><figcaption>Step 2: configure</figcaption></figure>
+</tg-slideshow>
 ```
 
 ### Collage inside details — expand to see photos
 
-Wrap a collage in `details` when photos are supplemental and should not dominate the digest on first glance:
+Wrap a collage in `<details>` when photos are supplemental and should not dominate the digest on first glance:
 
-```json
-{
-  "type": "details",
-  "summary": "Expand to see photo report (6 photos)",
-  "is_open": false,
-  "blocks": [
-    {
-      "type": "collage",
-      "blocks": [
-        { "type": "photo", "photo": [{ "file_id": "P1", "file_unique_id": "…", "width": 1280, "height": 960, "file_size": 204800 }] },
-        { "type": "photo", "photo": [{ "file_id": "P2", "file_unique_id": "…", "width": 1280, "height": 960, "file_size": 196600 }] }
-      ],
-      "caption": { "text": "Community meetup · Berlin · 2026-06-10" }
-    }
-  ]
-}
+```html
+<details><summary>Expand to see photo report (6 photos)</summary>
+<tg-collage>
+  <figure><img src="https://example.com/photos/meetup-berlin-1.jpg"/><figcaption>Community meetup &mdash; Berlin &mdash; 2026-06-10</figcaption></figure>
+  <img src="https://example.com/photos/meetup-berlin-2.jpg"/>
+  <img src="https://example.com/photos/meetup-berlin-3.jpg"/>
+</tg-collage>
+</details>
 ```
 
 ### Map embed — event location
 
-One static location tile, no interactive markers. `zoom` must be 13–20. Provide `width` and `height` as display hints.
+One static location tile, no interactive markers. `zoom` must be 13–20.
 
-```json
-{
-  "type": "map",
-  "location": { "latitude": 52.5200, "longitude": 13.4050 },
-  "zoom": 15,
-  "width": 600,
-  "height": 300,
-  "caption": { "text": "Meetup venue — Berlin Mitte" }
-}
+```html
+<tg-map lat="52.5200" long="13.4050" zoom="15"/>
 ```
 
 ---

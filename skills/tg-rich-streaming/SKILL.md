@@ -32,6 +32,8 @@ POST /sendRichMessageDraft
 }
 ```
 
+> Rich HTML tags (like `<tg-thinking>`) are valid pass-through inside the `markdown` field — spec explicitly allows HTML tags in Rich Markdown.
+
 > `RichBlockThinking` is **only** valid in `sendRichMessageDraft`. It is never stored in a `Message`.
 
 ### Step 2 — update draft as tokens arrive
