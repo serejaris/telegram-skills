@@ -1,8 +1,8 @@
-# Telegram Bot API 10.1 — Rich Message Formatting: Canonical Reference
+# Telegram Bot API 10.2 — Rich Message Formatting: Canonical Reference
 
-**API Version:** 10.1  
-**Release Date:** June 11, 2026  
-**Source:** https://core.telegram.org/bots/api (local snapshot)
+**API Version:** 10.2
+**Release Date:** July 14, 2026
+**Source:** https://core.telegram.org/bots/api
 
 ---
 
@@ -82,14 +82,80 @@ Rich formatted message (тип для получения из Message, не дл
 
 ### InputRichMessage
 
-Описывает rich message для отправки. Ровно **одно** из полей *html* или *markdown* должно быть использовано.
+Описывает rich message для отправки. Ровно **одно** из полей *html*, *markdown* или *blocks* должно быть использовано.
 
 | Field | Type | Description |
 |---|---|---|
+| blocks | Array of InputRichBlock | *Optional*. Content described directly as outgoing block entities |
 | html | String | *Optional*. Content of the rich message described using HTML formatting |
 | markdown | String | *Optional*. Content of the rich message described using Markdown formatting |
+| media | Array of InputRichMessageMedia | *Optional*. Media referenced from `html` or `markdown` via `tg://photo?id=`, `tg://video?id=`, or `tg://audio?id=` |
 | is_rtl | Boolean | *Optional*. Pass *True* if the rich message must be shown right-to-left |
 | skip_entity_detection | Boolean | *Optional*. Pass *True* to skip automatic detection of entities (URLs, email addresses, username mentions, hashtags, cashtags, bot commands, phone numbers) |
+
+`media` is used with `html` or `markdown`. Direct `blocks` embed `InputMedia*` objects in their
+media blocks and don't need indirection through `InputRichMessage.media`.
+
+### InputRichMessageMedia
+
+Связывает идентификатор из markup с отправляемым медиа.
+
+| Field | Type | Description |
+|---|---|---|
+| id | String | Identifier used in a `tg://photo?id=`, `tg://video?id=`, or `tg://audio?id=` link. Length 1–64; allowed characters: `A-Z`, `a-z`, `0-9`, `_`, `-` |
+| media | InputMediaAnimation or InputMediaAudio or InputMediaPhoto or InputMediaVideo or InputMediaVoiceNote | Media to send. Caption and unrelated `InputMedia*` fields are ignored |
+
+`InputMedia*.media` supports the standard Telegram file forms:
+
+- Telegram `file_id` (recommended for an already uploaded file);
+- public HTTP/HTTPS URL;
+- `attach://<name>` with a matching multipart/form-data file part named `<name>`.
+
+JSON requests can use `file_id` and HTTP/HTTPS URLs. `attach://` requires multipart/form-data;
+the JSON-serialized `rich_message` is one form field and each upload is another form field.
+
+### InputRichBlock
+
+Bot API 10.2 added outgoing equivalents for the rich block types. Their JSON shape follows the
+received `RichBlock` shape, with nested content typed as `InputRichBlock` and media fields typed
+as `InputMedia*`.
+
+| Input type | Required content |
+|---|---|
+| InputRichBlockParagraph | `{"type":"paragraph","text":RichText}` |
+| InputRichBlockSectionHeading | `{"type":"heading","text":RichText,"size":1..6}` |
+| InputRichBlockPreformatted | `{"type":"pre","text":RichText,"language"?}` |
+| InputRichBlockFooter | `{"type":"footer","text":RichText}` |
+| InputRichBlockDivider | `{"type":"divider"}` |
+| InputRichBlockMathematicalExpression | `{"type":"mathematical_expression","expression":"..."}` |
+| InputRichBlockAnchor | `{"type":"anchor","name":"..."}` |
+| InputRichBlockList | `{"type":"list","items":InputRichBlockListItem[]}` |
+| InputRichBlockBlockQuotation | `{"type":"blockquote","blocks":InputRichBlock[],"credit"?}` |
+| InputRichBlockPullQuotation | `{"type":"pullquote","text":RichText,"credit"?}` |
+| InputRichBlockCollage | `{"type":"collage","blocks":InputRichBlock[],"caption"?}` |
+| InputRichBlockSlideshow | `{"type":"slideshow","blocks":InputRichBlock[],"caption"?}` |
+| InputRichBlockTable | `{"type":"table","cells":RichBlockTableCell[][],...}` |
+| InputRichBlockDetails | `{"type":"details","summary":RichText,"blocks":InputRichBlock[],"is_open"?}` |
+| InputRichBlockMap | `{"type":"map","location":Location,"zoom":0..24,"width":0..10000,"height":0..10000,"caption"?}` |
+| InputRichBlockAnimation | `{"type":"animation","animation":InputMediaAnimation,"caption"?}` |
+| InputRichBlockAudio | `{"type":"audio","audio":InputMediaAudio,"caption"?}` |
+| InputRichBlockPhoto | `{"type":"photo","photo":InputMediaPhoto,"caption"?}` |
+| InputRichBlockVideo | `{"type":"video","video":InputMediaVideo,"caption"?}` |
+| InputRichBlockVoiceNote | `{"type":"voice_note","voice_note":InputMediaVoiceNote,"caption"?}` |
+| InputRichBlockThinking | `{"type":"thinking","text":RichText}`; draft-only |
+
+For `InputRichBlockAnimation`, `Audio`, `Photo`, `Video`, and `VoiceNote`, the caption inside the
+nested `InputMedia*` object is ignored. Put the rich caption in the block's `caption`.
+
+### InputRichBlockListItem
+
+| Field | Type | Description |
+|---|---|---|
+| blocks | Array of InputRichBlock | Content of the item |
+| has_checkbox | True | *Optional*. Show a checkbox |
+| is_checked | True | *Optional*. Show a checked checkbox |
+| value | Integer | *Optional*. Explicit numeric value for ordered lists |
+| type | String | *Optional*. Label type: `a`, `A`, `i`, `I`, or `1` |
 
 ---
 

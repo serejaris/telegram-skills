@@ -19,12 +19,23 @@ from urllib import request as urllib_request
 from urllib.parse import urlencode
 from urllib.error import URLError
 
-# ── Limits (Telegram Bot API 10.1) ────────────────────────────────────────────
+# ── Limits (Telegram Bot API 10.2) ────────────────────────────────────────────
 MAX_CHARS = 32_768
 MAX_BLOCKS = 500
 MAX_NESTING = 16
 MAX_MEDIA = 50
 MAX_TABLE_COLS = 20
+MEDIA_ID_RE = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
+MEDIA_REF_RE = re.compile(r"tg://(photo|video|audio)\?id=([A-Za-z0-9_-]+)")
+MEDIA_REF_CANDIDATE_RE = re.compile(
+    r"""tg://(photo|video|audio)\?id=([^\s)"']+)"""
+)
+MEDIA_TYPES = {"animation", "audio", "photo", "video", "voice_note"}
+REFERENCE_MEDIA_TYPES = {
+    "photo": {"photo"},
+    "video": {"video", "animation"},
+    "audio": {"audio", "voice_note"},
+}
 
 
 # ── Validation helpers ────────────────────────────────────────────────────────
@@ -39,7 +50,7 @@ class LimitError(Exception):
     pass
 
 
-def validate_limits(md: str) -> None:
+def validate_limits(md: str, media: list[dict] | None = None) -> None:
     char_count = count_chars(md)
     if char_count > MAX_CHARS:
         raise LimitError(
@@ -69,6 +80,57 @@ def validate_limits(md: str) -> None:
 
     # Check table columns.
     _check_table_cols(md)
+    validate_media_bindings(md, media or [])
+
+
+def validate_media_bindings(md: str, media: list[dict]) -> None:
+    """Validate Bot API 10.2 tg:// references and InputRichMessageMedia entries."""
+    if len(media) > MAX_MEDIA:
+        raise LimitError(
+            f"Too many media bindings: {len(media)}, limit is {MAX_MEDIA}."
+        )
+    for _, media_id in MEDIA_REF_CANDIDATE_RE.findall(md):
+        if not MEDIA_ID_RE.fullmatch(media_id):
+            raise LimitError(
+                f"Invalid tg:// media id {media_id!r}; use 1-64 characters from "
+                "A-Z, a-z, 0-9, _ and -."
+            )
+    refs = MEDIA_REF_RE.findall(md)
+    by_id: dict[str, dict] = {}
+
+    for item in media:
+        media_id = item.get("id")
+        media_object = item.get("media")
+        if not isinstance(media_id, str) or not MEDIA_ID_RE.fullmatch(media_id):
+            raise LimitError(
+                "Media id must be 1-64 characters using only A-Z, a-z, 0-9, _ and -."
+            )
+        if media_id in by_id:
+            raise LimitError(f"Duplicate media id: {media_id!r}.")
+        if not isinstance(media_object, dict):
+            raise LimitError(f"Media {media_id!r} must contain an InputMedia object.")
+        media_type = media_object.get("type")
+        source = media_object.get("media")
+        if media_type not in MEDIA_TYPES:
+            raise LimitError(
+                f"Media {media_id!r} has unsupported type {media_type!r}; "
+                f"choose one of {', '.join(sorted(MEDIA_TYPES))}."
+            )
+        if not isinstance(source, str) or not source:
+            raise LimitError(f"Media {media_id!r} requires a non-empty media source.")
+        by_id[media_id] = media_object
+
+    for ref_type, media_id in refs:
+        if media_id not in by_id:
+            raise LimitError(
+                f"Media reference tg://{ref_type}?id={media_id} has no --media binding."
+            )
+        media_type = by_id[media_id]["type"]
+        if media_type not in REFERENCE_MEDIA_TYPES[ref_type]:
+            raise LimitError(
+                f"Media reference tg://{ref_type}?id={media_id} is incompatible with "
+                f"InputMedia type {media_type!r}."
+            )
 
 
 def _estimate_block_count(md: str) -> int:
@@ -128,7 +190,7 @@ def _count_media_blocks(md: str) -> int:
     count = 0
     for line in md.splitlines():
         stripped = line.strip()
-        if re.match(r'^!\[.*?\]\(https?://', stripped):
+        if re.match(r'^!\[.*?\]\((?:https?://|tg://(?:photo|video|audio)\?id=)', stripped):
             count += 1
     return count
 
@@ -173,7 +235,7 @@ def normalize_markdown(md: str) -> str:
         url = m.group(1).strip()
         # Strip optional title: "url" or 'url' after space.
         url = re.split(r'\s+["\']', url)[0]
-        if not url.startswith(("http://", "https://")):
+        if not url.startswith(("http://", "https://", "tg://photo?id=", "tg://video?id=", "tg://audio?id=")):
             sys.stderr.write(
                 f"Warning: block-level media URL is not http/https and may be ignored by Telegram: {url!r}\n"
             )
@@ -183,9 +245,31 @@ def normalize_markdown(md: str) -> str:
 
 # ── Build InputRichMessage ────────────────────────────────────────────────────
 
-def build_input_rich_message(md: str) -> dict:
+def build_input_rich_message(md: str, media: list[dict] | None = None) -> dict:
     """Return a dict representing InputRichMessage with field `markdown`."""
-    return {"markdown": md}
+    result = {"markdown": md}
+    if media:
+        result["media"] = media
+    return result
+
+
+def parse_media_binding(value: str) -> dict:
+    """Parse ID=TYPE=SOURCE into an InputRichMessageMedia object."""
+    try:
+        media_id, media_type, source = value.split("=", 2)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError(
+            "media must use ID=TYPE=SOURCE"
+        ) from exc
+    item = {
+        "id": media_id,
+        "media": {"type": media_type, "media": source},
+    }
+    try:
+        validate_media_bindings("", [item])
+    except LimitError as exc:
+        raise argparse.ArgumentTypeError(str(exc)) from exc
+    return item
 
 
 # ── Send via Telegram Bot API ─────────────────────────────────────────────────
@@ -247,6 +331,17 @@ def main() -> None:
         action="store_true",
         help="Add is_rtl:true to the output.",
     )
+    parser.add_argument(
+        "--media",
+        action="append",
+        default=[],
+        type=parse_media_binding,
+        metavar="ID=TYPE=SOURCE",
+        help=(
+            "Bind tg:// media. TYPE: photo, video, animation, audio, voice_note. "
+            "SOURCE: Telegram file_id, URL, or attach://name. Repeat as needed."
+        ),
+    )
     args = parser.parse_args()
 
     if args.send and not args.chat_id:
@@ -269,13 +364,13 @@ def main() -> None:
 
     # Validate limits.
     try:
-        validate_limits(md)
+        validate_limits(md, args.media)
     except LimitError as exc:
         sys.stderr.write(f"Limit exceeded: {exc}\n")
         sys.exit(1)
 
     # Build InputRichMessage.
-    msg = build_input_rich_message(md)
+    msg = build_input_rich_message(md, args.media)
     if args.skip_entity_detection:
         msg["skip_entity_detection"] = True
     if args.rtl:
@@ -285,6 +380,17 @@ def main() -> None:
     output = json.dumps(msg, ensure_ascii=False, indent=2)
 
     if args.send:
+        attached = [
+            item["media"]["media"]
+            for item in args.media
+            if item["media"]["media"].startswith("attach://")
+        ]
+        if attached:
+            sys.stderr.write(
+                "Send failed: attach:// media requires multipart/form-data with matching "
+                "file parts; use the generated JSON with curl -F or bind a file_id/URL.\n"
+            )
+            sys.exit(1)
         try:
             response = send_rich_message(args.chat_id, msg)
             sys.stdout.write(json.dumps(response, ensure_ascii=False, indent=2) + "\n")

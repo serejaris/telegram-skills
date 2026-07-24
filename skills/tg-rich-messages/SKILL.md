@@ -2,14 +2,16 @@
 name: tg-rich-messages
 description: "Use when sending structured or richly formatted messages from a Telegram bot — tables, section headings, collapsible blocks, photo galleries, maps, math formulas, audio, or streaming AI responses. Also use for understanding rich message types and limits when plain sendMessage with parse_mode HTML/Markdown is not sufficient."
 license: MIT
-compatibility: "Requires network access to api.telegram.org; sending requires TELEGRAM_BOT_TOKEN env var; scripts need Python 3 stdlib only."
 ---
 
 # tg-rich-messages
 
+Sending requires network access to `api.telegram.org` and a Telegram bot token.
+
 ## Overview
 
-Bot API 10.1 (June 11, 2026) added **Rich Messages**: document-grade structured messages
+Bot API 10.1 introduced **Rich Messages**. Bot API 10.2 (July 14, 2026) added direct
+outgoing block JSON and explicit media bindings. Rich messages are document-grade content
 delivered directly in chat. Think Instant View articles — headings, tables, collage,
 slideshow, map, math, collapsible blocks — but sent by a bot via `sendRichMessage`.
 
@@ -34,15 +36,16 @@ for simple formatting. Move to `sendRichMessage` only when you need structural b
 ## Sending: InputRichMessage
 
 `sendRichMessage` takes an `InputRichMessage` object in its `rich_message` field.
-`InputRichMessage` carries the **entire message as a markup string** — either HTML or
-Markdown — in exactly one of its two fields:
+Choose exactly one content field:
 
 | Field | When to use |
 |---|---|
 | `html` | Rich HTML with Telegram-specific tags |
 | `markdown` | GitHub-Flavored Markdown + Telegram extensions |
+| `blocks` | Direct `InputRichBlock[]` JSON for deterministic programmatic composition |
 
-Do not pass both. Do not pass a block-JSON structure — the API accepts markup strings only.
+Do not pass multiple content fields. With `html` or `markdown`, add optional `media` bindings
+for uploaded files, Telegram `file_id` values, or HTTP URLs.
 
 Optional fields on `InputRichMessage`:
 
@@ -50,6 +53,62 @@ Optional fields on `InputRichMessage`:
 |---|---|---|
 | `is_rtl` | Boolean | Render message right-to-left |
 | `skip_entity_detection` | Boolean | Disable auto-detection of URLs, emails, mentions, etc. |
+| `media` | InputRichMessageMedia[] | Resolve `tg://photo`, `tg://video`, and `tg://audio` references in markup |
+
+### Media bindings for HTML and Markdown
+
+Reference media in markup:
+
+```markdown
+![](tg://photo?id=cover)
+![](tg://video?id=demo)
+![](tg://audio?id=voice)
+```
+
+Then bind each ID:
+
+```json
+{
+  "markdown": "## Launch\n\n![](tg://photo?id=cover)",
+  "media": [
+    {
+      "id": "cover",
+      "media": {"type": "photo", "media": "AgAC...file_id"}
+    }
+  ]
+}
+```
+
+Media IDs are 1–64 characters using only letters, digits, `_`, and `-`. The nested
+`InputMedia*.media` accepts a Telegram `file_id`, an HTTP/HTTPS URL, or
+`attach://<part_name>`. Use JSON for `file_id` and URLs. Use multipart/form-data for
+`attach://` uploads and provide a file part with the same name.
+
+`InputRichMessageMedia.media` may be `InputMediaAnimation`, `InputMediaAudio`,
+`InputMediaPhoto`, `InputMediaVideo`, or `InputMediaVoiceNote`. Markup exposes three
+reference schemes: `photo`, `video`, and `audio`; animation travels through `video`, and
+voice note through `audio`.
+
+### Direct block JSON
+
+Use `blocks` when code already has a structured document tree:
+
+```json
+{
+  "blocks": [
+    {"type": "heading", "size": 2, "text": "Daily AI Brief"},
+    {"type": "paragraph", "text": ["One release matters today: ", {"type": "bold", "text": "Opus 5"}]},
+    {
+      "type": "photo",
+      "photo": {"type": "photo", "media": "AgAC...file_id"},
+      "caption": {"text": "Official launch image"}
+    }
+  ]
+}
+```
+
+Nested blocks use `InputRichBlock`. Media blocks embed `InputMedia*` directly. Put captions
+in the outer block; captions inside nested `InputMedia*` are ignored.
 
 ---
 
@@ -254,15 +313,15 @@ Content here.
 
 ### Critical constraints
 
-**`InputRichMessage` is markup-only.** Pass the message as an HTML string (`html` field)
-or a Markdown string (`markdown` field). Never pass a block-JSON tree directly to the API.
-The structured `RichBlock` / `RichText` types exist only in received `Message.rich_message`
-(type `RichMessage`).
+**Choose exactly one content representation.** Use `html`, `markdown`, or `blocks`.
 
-**Media blocks: URL only, top-level only.**
+**Markup media has two source paths.**
 - Media must be specified as separate blocks, not inline in text.
-- Only HTTP/HTTPS URLs are accepted — file_id is not supported.
-- Type is inferred from MIME type / URL extension.
+- Direct HTTP/HTTPS media URLs work without `media`.
+- `tg://photo?id=`, `tg://video?id=`, and `tg://audio?id=` require a matching entry in `media`.
+- Each bound `InputMedia*.media` accepts `file_id`, HTTP/HTTPS URL, or multipart `attach://`.
+- Direct URL media type is inferred from MIME type and URL extension. Bound media type comes
+  from the nested `InputMedia*` object.
 
 **Table cells: inline formatting only.**
 No blocks (`<p>`, `<ul>`, `<img>`, etc.) inside `<td>` / `<th>`. Only inline tags.
@@ -295,8 +354,10 @@ block as collapsible media.
 
 | Mistake | Fix |
 |---|---|
-| Passing a JSON block array as `rich_message` | Pass the markup string in `rich_message.html` or `rich_message.markdown` |
-| Using `file_id` for media | Use a public HTTP/HTTPS URL |
+| Passing an array directly as `rich_message` | Wrap it as `{"blocks":[...]}` |
+| Using `tg://...id=cover` without `media` | Add an `InputRichMessageMedia` with `id: "cover"` |
+| Sending `attach://cover` in JSON only | Switch the request to multipart/form-data and add the `cover` file part |
+| Putting an `InputMedia*` caption inside a direct media block | Put the caption on `InputRichBlockPhoto` / `Video` / `Audio` |
 | Putting `<img>` or `<video>` inline in `<p>` | Move media to its own block, outside `<p>` |
 | Adding block elements inside `<td>` | Only inline tags inside table cells |
 | Using `RichBlockThinking` in `sendRichMessage` | `thinking` is valid only in `sendRichMessageDraft` |

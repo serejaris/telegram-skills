@@ -1,11 +1,13 @@
 ---
 name: tg-markdown-to-rich
-description: "Use when converting Markdown documents, reports, or any text content into a Telegram Rich Message for delivery via a bot. Triggers: \"send markdown to Telegram\", \"convert doc to rich message\", \"publish report to bot\", \"format markdown for sendRichMessage\", \"telegram rich message from file\". Produces an InputRichMessage JSON object ready for Telegram Bot API 10.1 sendRichMessage."
+description: "Use when converting Markdown documents, reports, or any text content into a Telegram Rich Message for delivery via a bot. Triggers: \"send markdown to Telegram\", \"convert doc to rich message\", \"publish report to bot\", \"format markdown for sendRichMessage\", \"telegram rich message from file\". Produces an InputRichMessage JSON object ready for Telegram Bot API 10.2 sendRichMessage, including explicit file_id or URL media bindings."
 license: MIT
-compatibility: "Requires network access to api.telegram.org; sending requires TELEGRAM_BOT_TOKEN env var; scripts need Python 3 stdlib only."
 ---
 
 # tg-markdown-to-rich
+
+The converter uses Python 3 standard library only. Direct sending requires network access to
+`api.telegram.org` and `TELEGRAM_BOT_TOKEN`.
 
 Converts a Markdown file (or stdin) into a Telegram `InputRichMessage` JSON
 object. The output uses the `markdown` field of `InputRichMessage` and is ready
@@ -28,6 +30,9 @@ cat report.md | python3 scripts/md2rich.py
 # Additional flags
 python3 scripts/md2rich.py document.md --rtl
 python3 scripts/md2rich.py document.md --skip-entity-detection
+python3 scripts/md2rich.py document.md \
+  --media cover=photo=AgAC...file_id \
+  --media voice=voice_note=https://cdn.example.com/briefing.ogg
 
 # Send directly via Telegram Bot API
 TELEGRAM_BOT_TOKEN=<token> python3 scripts/md2rich.py document.md \
@@ -38,7 +43,10 @@ Output is a JSON object:
 
 ```json
 {
-  "markdown": "# Title\n\nContent..."
+  "markdown": "# Title\n\n![](tg://photo?id=cover)",
+  "media": [
+    {"id": "cover", "media": {"type": "photo", "media": "AgAC...file_id"}}
+  ]
 }
 ```
 
@@ -98,9 +106,11 @@ Pass this as the `rich_message` parameter to `sendRichMessage`.
 
 | Input | Behavior |
 |---|---|
-| Block-level media with non-http/https URL | Warning to stderr; passed through as-is (Telegram will likely reject it) |
+| `tg://photo`, `tg://video`, `tg://audio` | Validated against repeatable `--media ID=TYPE=SOURCE` bindings |
+| `file_id` or HTTP/HTTPS source | Sent in JSON through `InputRichMessage.media` |
+| `attach://name` source | Generated successfully; `--send` rejects it because upload requires a multipart file part |
 | Nested blocks inside table cells | GFM spec disallows this; content treated as inline text (Telegram cells accept only inline formatting) |
-| `data:` image URIs | Passed through with a warning; Telegram only accepts http/https media URLs |
+| Other non-HTTP media URI | Warning to stderr; passed through for Telegram validation |
 | `<tg-map>` HTML tag | Passed through unchanged; not generatable from plain Markdown |
 | `RichBlockThinking` | Not producible from Markdown (only valid in `sendRichMessageDraft`) |
 | HTML tags not in Rich HTML spec | Passed through; Telegram will ignore unknown tags |

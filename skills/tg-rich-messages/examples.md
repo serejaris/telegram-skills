@@ -324,3 +324,111 @@ html = """
 
 > An `<a href="">` with an empty href links back to the top of the message
 > (maps to `RichTextAnchorLink` with `anchor_name: ""`).
+
+---
+
+## 13. Direct outgoing blocks (Bot API 10.2)
+
+Use `blocks` for deterministic structured composition. It is mutually exclusive with
+`html` and `markdown`.
+
+```python
+payload = {
+    "chat_id": CHAT_ID,
+    "rich_message": {
+        "blocks": [
+            {"type": "heading", "size": 2, "text": "AI Daily"},
+            {
+                "type": "paragraph",
+                "text": [
+                    "The main release is ",
+                    {"type": "bold", "text": "Opus 5"},
+                    ".",
+                ],
+            },
+            {
+                "type": "list",
+                "items": [
+                    {
+                        "blocks": [
+                            {"type": "paragraph", "text": "Test reasoning quality"}
+                        ],
+                        "has_checkbox": True,
+                        "is_checked": True,
+                    },
+                    {
+                        "blocks": [
+                            {"type": "paragraph", "text": "Compare coding speed"}
+                        ],
+                        "has_checkbox": True,
+                    },
+                ],
+            },
+            {
+                "type": "photo",
+                "photo": {"type": "photo", "media": "AgAC...telegram_file_id"},
+                "caption": {"text": "Launch artwork", "credit": "Anthropic"},
+            },
+            {"type": "footer", "text": "#daily · 2026-07-23"},
+        ]
+    },
+}
+```
+
+Nested media captions such as `photo.caption` are ignored. Put the caption in the outer
+`InputRichBlockPhoto.caption`.
+
+---
+
+## 14. Bind file_id or URL media in Markdown
+
+`tg://` references let markup use Telegram-hosted files and explicit media metadata:
+
+```python
+payload = {
+    "chat_id": CHAT_ID,
+    "rich_message": {
+        "markdown": (
+            "## Release notes\n\n"
+            "![](tg://photo?id=cover \"Launch cover\")\n\n"
+            "![](tg://audio?id=briefing \"Audio briefing\")"
+        ),
+        "media": [
+            {
+                "id": "cover",
+                "media": {
+                    "type": "photo",
+                    "media": "AgAC...telegram_file_id",
+                },
+            },
+            {
+                "id": "briefing",
+                "media": {
+                    "type": "voice_note",
+                    "media": "https://cdn.example.com/briefing.ogg",
+                },
+            },
+        ],
+    },
+}
+```
+
+IDs must be unique and match `[A-Za-z0-9_-]{1,64}`. Every `tg://...id=` reference needs a
+matching `media` entry.
+
+---
+
+## 15. Upload a new file with multipart/form-data
+
+Use `attach://<name>` in the media object and send a multipart request with a file part of
+the same name:
+
+```bash
+curl -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendRichMessage" \
+  -F "chat_id=${CHAT_ID}" \
+  -F 'rich_message={"markdown":"## Launch\n\n![](tg://photo?id=cover)","media":[{"id":"cover","media":{"type":"photo","media":"attach://cover_file"}}]}' \
+  -F "cover_file=@./cover.png;type=image/png"
+```
+
+For an existing Telegram file, replace `attach://cover_file` with its `file_id` and send
+the request as JSON. For a public file, use its HTTP/HTTPS URL.

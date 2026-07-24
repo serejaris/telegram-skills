@@ -2,12 +2,15 @@
 name: tg-rich-streaming
 description: "Use when streaming LLM or AI-generated replies to Telegram in real time (ChatGPT-style progressive output in a bot), showing a model thinking indicator, or delivering token-by-token text as an animated rich message draft that finalizes into a permanent message."
 license: MIT
-compatibility: "Requires network access to api.telegram.org; sending requires TELEGRAM_BOT_TOKEN env var; draft endpoints (sendRichMessageDraft) work only with private integer chat_id."
 ---
 
 # tg-rich-streaming
 
 Stream AI-generated text into a Telegram private chat with native draft animation and a "thinking" indicator — the same UX as ChatGPT or Claude, directly inside the bot.
+
+Sending requires network access to `api.telegram.org` and `TELEGRAM_BOT_TOKEN`.
+`sendRichMessageDraft` works only with a private integer `chat_id`. Bot API 10.2 also permits
+direct `InputRichMessage.blocks`; the draft lifecycle below is unchanged.
 
 ## Core pattern
 

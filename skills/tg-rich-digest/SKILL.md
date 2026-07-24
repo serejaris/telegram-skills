@@ -2,12 +2,11 @@
 name: tg-rich-digest
 description: "Use when sending daily or weekly digests, community summaries, status reports, or newsletters through a Telegram bot as one structured rich message instead of a wall of plain text. Triggers: \"send weekly digest\", \"post summary to channel\", \"newsletter via bot\", \"community report\", \"daily status update\", \"format report as rich message\"."
 license: MIT
-compatibility: "No required env vars for reference; sending examples require TELEGRAM_BOT_TOKEN and network access to api.telegram.org."
 ---
 
 # tg-rich-digest
 
-Send a digest or report as a single structured Telegram Rich Message (Bot API 10.1) — section headings, topic lists, collapsible long-tail, photo collage, map embed, and a footer — all in one document-grade message.
+Send a digest or report as a single structured Telegram Rich Message (Bot API 10.2) — section headings, topic lists, collapsible long-tail, photo collage, map embed, and a footer — all in one document-grade message.
 
 ## Overview
 
@@ -35,7 +34,9 @@ Recommended block sequence:
 [footer]       — date, source, issue number
 ```
 
-Each element below is shown as **HTML markup** — the string you put inside `InputRichMessage.html`. This is the correct send format; the API accepts only `{"html": "..."}` or `{"markdown": "..."}`.
+Each element below is shown as **HTML markup**, the string placed inside
+`InputRichMessage.html`. Bot API 10.2 also accepts `InputRichMessage.blocks` for code-built
+documents.
 
 > **Note:** When you receive the message back, `Message.rich_message` contains the parsed `RichBlock` JSON (e.g. `{"type": "heading", ...}`). That structure is receive-only — you cannot send it.
 
@@ -89,7 +90,9 @@ Add `open` attribute (`<details open>`) only for critical content that should be
 
 ### Photo collage
 
-All media must use **HTTP or HTTPS URLs** — `file_id` is not accepted in `InputRichMessage`.
+Public **HTTP or HTTPS URLs** can be used directly. For Telegram `file_id` values or uploads,
+use `tg://photo?id=...`, `tg://video?id=...`, or `tg://audio?id=...` plus
+`InputRichMessage.media`.
 
 ```html
 <tg-collage>
@@ -119,7 +122,20 @@ Mix `<img>` and `<video src="https://...">` inside `<tg-collage>` freely. Wrap i
 
 ## Media Patterns
 
-All media in `InputRichMessage` must use **HTTP or HTTPS URLs**. `file_id` is a receive-only field in `Message.rich_message` — it cannot be used when sending.
+Media can use public HTTP/HTTPS URLs directly. Existing Telegram `file_id` values and new
+multipart uploads use explicit Bot API 10.2 media bindings:
+
+```json
+{
+  "html": "<h2>Daily</h2><img src=\"tg://photo?id=cover\"/>",
+  "media": [
+    {"id": "cover", "media": {"type": "photo", "media": "AgAC...file_id"}}
+  ]
+}
+```
+
+For a new upload, set `media` to `attach://cover_file`, send multipart/form-data, and attach
+the binary under the `cover_file` part name.
 
 ### Photo collage
 
@@ -202,7 +218,8 @@ Pre-calculate block count before sending: count top-level blocks + sum of all ne
 
 ## Sending the Digest
 
-Use `sendRichMessage`. Supply content as `html` or `markdown` inside `InputRichMessage` — pick one, not both.
+Use `sendRichMessage`. Supply exactly one of `html`, `markdown`, or `blocks` inside
+`InputRichMessage`.
 
 Minimal call (raw HTTP):
 
@@ -235,4 +252,4 @@ Rich Message rendering on older Telegram clients is **not documented by Telegram
 
 - [`../tg-rich-messages/SKILL.md`](../tg-rich-messages/SKILL.md) — complete block and inline type reference
 - [`../tg-markdown-to-rich/SKILL.md`](../tg-markdown-to-rich/SKILL.md) — convert existing Markdown into a rich message
-- [`../../reference/rich-messages-spec.md`](../../reference/rich-messages-spec.md) — canonical API spec (Bot API 10.1)
+- [`../../reference/rich-messages-spec.md`](../../reference/rich-messages-spec.md) — canonical API spec (Bot API 10.2)

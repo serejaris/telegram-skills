@@ -1,7 +1,7 @@
 {
   "name": "telegram-skills",
-  "description": "Telegram Bot API 10.1 Rich Messages skills: send structured documents, tables, galleries, maps, and stream AI replies from any bot",
-  "version": "1.0.0",
+  "description": "Telegram Bot API 10.2 Rich Messages skills: send structured documents, block JSON, uploaded media, galleries, maps, and streaming AI replies",
+  "version": "1.1.0",
   "author": {
     "name": "serejaris"
   },
