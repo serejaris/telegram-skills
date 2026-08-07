@@ -52,10 +52,10 @@ Then ask your agent — e.g. *"send this report to my Telegram channel as a rich
 
 | Skill | What it does |
 |---|---|
-| [`tg-rich-messages`](skills/tg-rich-messages/) | Core reference: markup, outgoing block JSON, media bindings, limits and raw HTTP sending |
-| [`tg-markdown-to-rich`](skills/tg-markdown-to-rich/) | Convert Markdown into a rich message and bind `file_id` or URL media |
+| [`tg-rich-messages`](skills/tg-rich-messages/) | Core reference: markup, outgoing block JSON, media bindings and uploads, preflight, limits, raw HTTP sending |
+| [`tg-markdown-to-rich`](skills/tg-markdown-to-rich/) | Convert Markdown into a rich message and bind `file_id`, URL, or uploaded media |
 | [`tg-rich-streaming`](skills/tg-rich-streaming/) | Stream LLM output into a chat: draft animation, thinking block, mandatory finalization |
-| [`tg-rich-digest`](skills/tg-rich-digest/) | Digest/report pattern: headings, lists, collapsible sections, photo collage, map embed |
+| [`tg-rich-digest`](skills/tg-rich-digest/) | Digest and channel-article patterns: flat layout, preview + collapsed full version, media as evidence, preflight gate |
 
 ## Reference
 

@@ -89,6 +89,84 @@ Media IDs are 1–64 characters using only letters, digits, `_`, and `-`. The ne
 reference schemes: `photo`, `video`, and `audio`; animation travels through `video`, and
 voice note through `audio`.
 
+#### Captions and player metadata
+
+The caption comes from the **markup**, not from the binding — the title argument of the
+Markdown image syntax (or `<figcaption>` in HTML):
+
+```markdown
+![](tg://photo?id=cover "Release notes: the model shipped on July 29")
+```
+
+`InputMedia*.caption` inside the binding is ignored. What the binding *does* carry is
+player metadata, and for audio it is what turns a raw file into a labelled track in the
+message:
+
+```json
+{
+  "id": "live_answer",
+  "media": {
+    "type": "audio",
+    "media": "attach://live_answer_file",
+    "duration": 4,
+    "performer": "Grok Voice 2.0",
+    "title": "Answer: 323"
+  }
+}
+```
+
+| Type | Metadata worth setting |
+|---|---|
+| `audio` | `duration`, `performer`, `title` — shown in the inline player |
+| `video` | `duration`, `width`, `height`, `thumbnail`, `supports_streaming`, `has_spoiler` |
+| `photo` | `has_spoiler` |
+
+Set `duration` even when Telegram can infer it: several short clips in one message render
+as a consistent list only when every one of them reports its length.
+
+### Preflight: validate bindings before sending
+
+Telegram reports a bad binding as one opaque `Bad Request`. Validate locally first and the
+failure names the offending id. Four checks, all cheap:
+
+1. **Every `tg://…?id=X` in markup has a binding.** Missing → the media silently never
+   renders or the call fails.
+2. **Every binding is referenced by the markup.** An unused binding means an editing slip —
+   a renamed id, a dropped paragraph. Telegram's behaviour here is unspecified; treat it as
+   a build error of your own.
+3. **The reference scheme matches the bound type.** `tg://audio?id=X` accepts `audio` or
+   `voice_note`; `tg://video?id=X` accepts `video` or `animation`; `tg://photo?id=X` accepts
+   `photo`. A mismatch is a definite error.
+4. **Every `attach://<name>` has a matching file part**, and the file exists on disk.
+
+```python
+import re
+
+REF = re.compile(r"tg://(photo|video|audio)\?id=([A-Za-z0-9_-]+)")
+ACCEPTS = {"photo": {"photo"}, "video": {"video", "animation"}, "audio": {"audio", "voice_note"}}
+
+def check(markup: str, media: list[dict]) -> None:
+    bound = {item["id"]: item["media"]["type"] for item in media}
+    refs = set(REF.findall(markup))
+    referenced = {media_id for _, media_id in refs}
+    if missing := referenced - bound.keys():
+        raise ValueError(f"missing bindings: {sorted(missing)}")
+    if unused := bound.keys() - referenced:
+        raise ValueError(f"unused bindings: {sorted(unused)}")
+    for scheme, media_id in refs:
+        if bound[media_id] not in ACCEPTS[scheme]:
+            raise ValueError(f"{media_id}: tg://{scheme} cannot carry {bound[media_id]}")
+```
+
+Keep the file paths in a small manifest next to the payload — attachment name, path, MIME
+type — so the multipart step is a lookup rather than a second source of truth:
+
+```json
+[
+  {"id": "cover", "attachment_name": "cover_file", "path": "cover.png", "mime_type": "image/png"}
+]
+```
+
 ### Direct block JSON
 
 Use `blocks` when code already has a structured document tree:
@@ -179,7 +257,25 @@ payload = {
 ```
 
 See [`examples.md`](examples.md) for more complete examples including streaming drafts,
-collages, and details blocks.
+collages, details blocks, and a full multipart upload.
+
+### Delivery outcomes: what a failed call actually means
+
+A rich message with uploads is a large multipart request, so the interesting failures are
+not validation errors — they are the ones where you do not know whether the message went
+out. Split the response three ways:
+
+| Response | Meaning | Correct reaction |
+|---|---|---|
+| `ok: true` | Delivered | Store `message_id` — it is the handle for later `editMessageText` |
+| HTTP 4xx with `ok: false` | Definite failure, nothing was posted | Fix the payload and resend |
+| HTTP 429 or 5xx, or a transport timeout | **Unknown** — the message may already be in the channel | Do not blind-retry |
+
+The third row is the one that bites. Retrying a timed-out `sendRichMessage` is how a channel
+gets the same article twice, and there is no dedup on Telegram's side. Mark the send as
+*unresolved* instead, and require a human (or a lookup of the channel's last message) to
+decide before anything is sent again. If you retry automatically anywhere, retry only calls
+that failed with a definite 4xx.
 
 ---
 
@@ -356,7 +452,13 @@ block as collapsible media.
 |---|---|
 | Passing an array directly as `rich_message` | Wrap it as `{"blocks":[...]}` |
 | Using `tg://...id=cover` without `media` | Add an `InputRichMessageMedia` with `id: "cover"` |
+| Leaving a bound id that markup no longer references | Drop the binding — an unused one is an editing slip, not a no-op |
+| Binding `voice_note` behind `tg://video?id=` | Match the scheme: `photo`→photo, `video`→video/animation, `audio`→audio/voice_note |
 | Sending `attach://cover` in JSON only | Switch the request to multipart/form-data and add the `cover` file part |
+| Nesting the multipart form fields as JSON objects | Every non-file field is a string: `json.dumps(rich_message)` in one form field |
+| Putting the caption in `InputMedia*.caption` of a binding | Captions come from markup — the image title argument or `<figcaption>` |
+| Shipping audio bindings without `duration`/`title` | The inline player shows an unlabelled blob; set the metadata on the binding |
+| Retrying a `sendRichMessage` that timed out | Outcome is unknown — retrying duplicates the post; resolve it before resending |
 | Putting an `InputMedia*` caption inside a direct media block | Put the caption on `InputRichBlockPhoto` / `Video` / `Audio` |
 | Putting `<img>` or `<video>` inline in `<p>` | Move media to its own block, outside `<p>` |
 | Adding block elements inside `<td>` | Only inline tags inside table cells |

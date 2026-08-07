@@ -1,6 +1,6 @@
 ---
 name: tg-markdown-to-rich
-description: "Use when converting Markdown documents, reports, or any text content into a Telegram Rich Message for delivery via a bot. Triggers: \"send markdown to Telegram\", \"convert doc to rich message\", \"publish report to bot\", \"format markdown for sendRichMessage\", \"telegram rich message from file\". Produces an InputRichMessage JSON object ready for Telegram Bot API 10.2 sendRichMessage, including explicit file_id or URL media bindings."
+description: "Use when converting Markdown documents, reports, or any text content into a Telegram Rich Message for delivery via a bot. Triggers: \"send markdown to Telegram\", \"convert doc to rich message\", \"publish report to bot\", \"format markdown for sendRichMessage\", \"telegram rich message from file\". Produces an InputRichMessage JSON object ready for Telegram Bot API 10.2 sendRichMessage, including file_id, URL, and multipart upload media bindings."
 license: MIT
 ---
 
@@ -34,10 +34,49 @@ python3 scripts/md2rich.py document.md \
   --media cover=photo=AgAC...file_id \
   --media voice=voice_note=https://cdn.example.com/briefing.ogg
 
-# Send directly via Telegram Bot API
+# Bindings with player metadata (duration, performer, title, has_spoiler)
+python3 scripts/md2rich.py document.md --media-json bindings.json
+
+# Upload local files: each attach://NAME needs a matching --attach NAME=PATH
+python3 scripts/md2rich.py document.md \
+  --media-json bindings.json \
+  --attach cover_file=./cover.png \
+  --attach answer_file=./answer.mp3
+
+# Send directly via Telegram Bot API (multipart when --attach is used)
 TELEGRAM_BOT_TOKEN=<token> python3 scripts/md2rich.py document.md \
   --send --chat-id <chat_id>
 ```
+
+`--media` covers the common `ID=TYPE=SOURCE` case. Use `--media-json` when a binding needs
+fields that syntax cannot express — an audio track's `duration`, `performer`, and `title`,
+or `has_spoiler` on a photo:
+
+```json
+[
+  {
+    "id": "answer",
+    "media": {
+      "type": "audio",
+      "media": "attach://answer_file",
+      "duration": 4,
+      "performer": "Voice 2.0",
+      "title": "Answer: 323"
+    }
+  }
+]
+```
+
+### Exit codes
+
+| Code | Meaning |
+|---|---|
+| `0` | Converted, or sent and acknowledged |
+| `1` | Definite failure — limit exceeded, bad binding, or a 4xx from Telegram |
+| `2` | **Unknown outcome** — 429, 5xx, or a transport failure during `--send` |
+
+Code `2` is not a retry signal. The message may already be in the chat; resending duplicates
+it. Check the target chat before any second attempt.
 
 Output is a JSON object:
 
@@ -106,9 +145,9 @@ Pass this as the `rich_message` parameter to `sendRichMessage`.
 
 | Input | Behavior |
 |---|---|
-| `tg://photo`, `tg://video`, `tg://audio` | Validated against repeatable `--media ID=TYPE=SOURCE` bindings |
+| `tg://photo`, `tg://video`, `tg://audio` | Validated both ways against `--media` / `--media-json` bindings: a reference without a binding and a binding without a reference are both exit 1 |
 | `file_id` or HTTP/HTTPS source | Sent in JSON through `InputRichMessage.media` |
-| `attach://name` source | Generated successfully; `--send` rejects it because upload requires a multipart file part |
+| `attach://name` source | Uploaded via multipart when `--attach name=path` is supplied; without it, exit 1 before any request |
 | Nested blocks inside table cells | GFM spec disallows this; content treated as inline text (Telegram cells accept only inline formatting) |
 | Other non-HTTP media URI | Warning to stderr; passed through for Telegram validation |
 | `<tg-map>` HTML tag | Passed through unchanged; not generatable from plain Markdown |

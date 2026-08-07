@@ -432,3 +432,96 @@ curl -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendRichMessage"
 
 For an existing Telegram file, replace `attach://cover_file` with its `file_id` and send
 the request as JSON. For a public file, use its HTTP/HTTPS URL.
+
+---
+
+## 16. Multipart upload from Python, driven by a manifest
+
+The trap when moving off `curl`: in a multipart request **every non-file field is a string**.
+`rich_message` has to be JSON-serialized into a single form field. Passing it as a nested
+object produces a `Bad Request` that says nothing about the real cause.
+
+Keep the files in a manifest so markup, bindings, and disk paths cannot drift apart:
+
+```python
+import json
+import httpx
+
+MANIFEST = [
+    {"attachment_name": "cover_file", "path": "cover.png", "mime_type": "image/png"},
+    {"attachment_name": "answer_file", "path": "answer.mp3", "mime_type": "audio/mpeg"},
+]
+
+rich_message = {
+    "markdown": (
+        "# Voice model ships with Russian audio-to-audio\n\n"
+        "We ran the release through a live test.\n\n"
+        '![](tg://photo?id=cover "Release card")\n\n'
+        '![](tg://audio?id=answer "The model answered 323")'
+    ),
+    "media": [
+        {"id": "cover", "media": {"type": "photo", "media": "attach://cover_file"}},
+        {
+            "id": "answer",
+            "media": {
+                "type": "audio",
+                "media": "attach://answer_file",
+                "duration": 4,
+                "performer": "Grok Voice 2.0",
+                "title": "Answer: 323",
+            },
+        },
+    ],
+}
+
+files = {
+    item["attachment_name"]: (
+        item["path"],
+        open(item["path"], "rb").read(),
+        item["mime_type"],
+    )
+    for item in MANIFEST
+}
+
+form = {"chat_id": str(CHAT_ID), "rich_message": json.dumps(rich_message, ensure_ascii=False)}
+
+response = httpx.post(
+    f"https://api.telegram.org/bot{TOKEN}/sendRichMessage",
+    data=form,
+    files=files,
+    timeout=30.0,
+)
+body = response.json()
+
+if response.status_code == 429 or response.status_code >= 500:
+    raise RuntimeError("delivery outcome unknown — resolve before resending")
+if not body.get("ok"):
+    raise RuntimeError(body.get("description"))
+
+message_id = body["result"]["message_id"]
+```
+
+`editMessageText` takes the same multipart shape — pass `message_id` alongside `chat_id`
+and a fresh `rich_message`.
+
+---
+
+## 17. Audio evidence inside an article
+
+Several short clips in one message read as a comparison table only if each binding carries
+its own `performer` and `title`. That is what the player shows; the markup title becomes the
+caption underneath.
+
+```json
+{
+  "markdown": "### Voice comparison\n\n![](tg://audio?id=atlas \"Atlas — 98.8% of the source text preserved\")\n\n![](tg://audio?id=zenith \"Zenith — 92.9%\")\n\n![](tg://audio?id=carina \"Carina — 87.8%\")",
+  "media": [
+    {"id": "atlas", "media": {"type": "audio", "media": "attach://atlas_file", "duration": 12, "performer": "Atlas", "title": "98.8%"}},
+    {"id": "zenith", "media": {"type": "audio", "media": "attach://zenith_file", "duration": 12, "performer": "Zenith", "title": "92.9%"}},
+    {"id": "carina", "media": {"type": "audio", "media": "attach://carina_file", "duration": 11, "performer": "Carina", "title": "87.8%"}}
+  ]
+}
+```
+
+Use `voice_note` instead of `audio` for a single spoken remark — it renders as a voice
+message with a waveform and no track metadata.

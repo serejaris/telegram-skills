@@ -1,6 +1,6 @@
 ---
 name: tg-rich-digest
-description: "Use when sending daily or weekly digests, community summaries, status reports, or newsletters through a Telegram bot as one structured rich message instead of a wall of plain text. Triggers: \"send weekly digest\", \"post summary to channel\", \"newsletter via bot\", \"community report\", \"daily status update\", \"format report as rich message\"."
+description: "Use when sending daily or weekly digests, community summaries, status reports, newsletters, or channel articles through a Telegram bot as one structured rich message instead of a wall of plain text. Covers both the flat digest layout and the preview + collapsed full version layout for long editions, plus media as evidence and a preflight gate before publishing. Triggers: \"send weekly digest\", \"post summary to channel\", \"newsletter via bot\", \"community report\", \"daily status update\", \"publish article to channel\", \"format report as rich message\"."
 license: MIT
 ---
 
@@ -39,6 +39,54 @@ Each element below is shown as **HTML markup**, the string placed inside
 documents.
 
 > **Note:** When you receive the message back, `Message.rich_message` contains the parsed `RichBlock` JSON (e.g. `{"type": "heading", ...}`). That structure is receive-only — you cannot send it.
+
+---
+
+## Layout choice: flat digest vs. preview + full version
+
+The anatomy above is the **flat** layout: everything visible, `<details>` reserved for the
+long tail. It works for a short digest — a handful of bullets a reader scans in the feed.
+
+It stops working once the digest becomes an article. A long rich message in a channel is
+rendered collapsed anyway, but Telegram decides where to cut, and the cut usually lands
+mid-sentence in the middle of your third section. The fix is to make the cut yourself:
+
+```
+[heading h1]   — the claim, as a headline
+[paragraph]    — 2-3 short paragraphs: the fact, your own check, the consequence
+[photo]        — cover image
+[details]      — "Read the full version" — the ENTIRE article, closed by default
+```
+
+Everything below the lead lives inside one `<details>` block: sections, media, sources,
+sign-off. The reader sees a deliberate preview and one button; the feed shows a clean card
+instead of an arbitrary truncation.
+
+```html
+<h1>Voice model ships with Russian audio-to-audio</h1>
+<p>The vendor shipped <code>voice-think-fast-2.0</code> on July 29. First audio in 0.7 s, $0.08 per minute.</p>
+<p>We tested Russian audio-to-audio: the model heard the question and answered <b>323</b>.</p>
+<img src="tg://photo?id=cover"/>
+<details><summary>Read the full version</summary>
+  <h2>What shipped</h2>
+  ...
+</details>
+```
+
+Budget the preview. Roughly **500 visible characters total** before `<details>`, with no
+single paragraph over ~220 — past that the feed truncates the preview itself and the whole
+point is lost. Count visible characters, not markup.
+
+Two rules that are easy to get wrong:
+
+- **Media before `<details>` counts as part of the preview.** One cover image, no more.
+- **Keep the sign-off inside `<details>`.** Anything after the closing tag reads as a
+  detached fragment in the feed.
+
+| Digest shape | Layout |
+|---|---|
+| Bullet roundup, under ~1500 chars | Flat — `<details>` for the long tail only |
+| Article with sections, media, sources | Preview + full version in one `<details>` |
 
 ### Heading
 
@@ -137,6 +185,34 @@ multipart uploads use explicit Bot API 10.2 media bindings:
 For a new upload, set `media` to `attach://cover_file`, send multipart/form-data, and attach
 the binary under the `cover_file` part name.
 
+### Media as evidence, not decoration
+
+A collage at the end of a digest is a photo report. A screenshot placed directly under the
+claim it supports is evidence, and it is what makes a digest worth more than the links it
+cites. In the preview + full version layout the body carries the media:
+
+```html
+<h2>What shipped</h2>
+<p>The release notes list the model as generally available.</p>
+<img src="tg://photo?id=release_source"/>
+<h2>Our test</h2>
+<p>We asked it in Russian. It answered correctly.</p>
+<audio src="tg://audio?id=live_answer"></audio>
+```
+
+Rules that hold up in practice:
+
+- **One source screenshot per factual claim** that a reader might otherwise have to take on
+  trust — a release page, a pricing table, a dashboard.
+- **Audio and video belong in the body**, next to the claim, not collected into a trailing
+  block. A comparison of four voice samples reads as a table when the clips are interleaved
+  with their numbers, and as noise when they are stacked at the end.
+- **Give every binding its metadata** (`duration`, `performer`, `title` for audio) — see
+  [`../tg-rich-messages/SKILL.md`](../tg-rich-messages/SKILL.md#captions-and-player-metadata).
+- **One message per edition.** Rich messages hold up to 50 media bindings; a follow-up post
+  with "here are the screenshots I forgot" splits the artifact and cannot be edited into the
+  original.
+
 ### Photo collage
 
 Group multiple photos (and optionally videos) into a single tile layout. Use `<figure>` with `<figcaption>` and `<cite>` for attribution.
@@ -199,6 +275,10 @@ One static location tile, no interactive markers. `zoom` must be 13–20.
 | Max media attachments (photos + videos + audio) | **50** |
 | Max table columns | **20** |
 
+In the preview + full version layout one more budget applies, and it is the one that
+actually binds: **~500 visible characters before `<details>`**, no paragraph over ~220. The
+API limits above are generous; the feed card is not.
+
 ### Counting blocks
 
 Every `items` entry in a list counts as one block. Every `blocks` entry inside `details` counts. Nested list items each count individually. A collage with 8 photos = 1 (`collage`) + 8 (`photo`) = 9 blocks.
@@ -213,6 +293,29 @@ When a digest is near limits, cut in this order:
 4. **Drop media last.** Collage/slideshow consume both block budget and media budget — remove if text is the priority.
 
 Pre-calculate block count before sending: count top-level blocks + sum of all nested arrays.
+
+---
+
+## Preflight gate
+
+A digest published on a schedule needs a check that runs without taste. Everything below is
+mechanically verifiable, and each one has a failure mode that only shows up after the post
+is live and uneditable:
+
+| Check | Why |
+|---|---|
+| Preview under the visible-character budget | Otherwise the feed truncates the preview itself |
+| Exactly one `<details>`, sign-off inside it | A trailing fragment after the closing tag |
+| Every `tg://…?id=` bound, every binding referenced | Silent missing media, or a renamed id |
+| Every `attach://` name present in the manifest, file on disk | Send fails at upload time |
+| Blank line before `---` | Markdown reads the rule as a heading underline and turns the paragraph above it into an `<h2>` |
+| Bare `@handle` only for Telegram usernames | Telegram links any `@word` as a Telegram user; external handles must be full URLs |
+| Every outbound link resolves | A 404 in a published digest cannot be fixed by editing |
+| Not a duplicate of a previous edition | Scheduled pipelines re-publish on retry |
+
+Run it as a script with a non-zero exit code, before the send, on every edition. Splitting
+the report into *blocking* and *fixable* keeps it usable: a dead link blocks, a long
+paragraph is a warning.
 
 ---
 
