@@ -27,7 +27,7 @@ markup = {'inline_keyboard': [[
 
 ## Screen hierarchy and restrained color
 
-Start with a short heading, one brief sentence explaining the value, and a clear next action. Keep provider configuration and technical details in contextual About/help views; put quotas, reset times and rate limits in a dedicated limits view or a relevant status.
+Start with a short heading, a plain explanation of what the bot does and why it helps, and a clear next action. Brevity should preserve the information a newcomer needs to understand the product. Keep provider configuration and technical details in contextual About/help views; put quotas, reset times and rate limits in a dedicated limits view or a relevant status.
 
 - Give each screen at most one `primary` CTA. A screen with equally important choices can use neutral buttons throughout.
 - Leave secondary navigation, Back, ordinary Cancel, About, limits and copy actions neutral by omitting `style`.
@@ -36,6 +36,16 @@ Start with a short heading, one brief sentence explaining the value, and a clear
 - Do not apply a color to every button. Color is a semantic cue, supported by concise labels and screen context. Check the actual mobile outcome and adjust hierarchy when user feedback shows visual overload.
 
 The helper continues to support every documented style; these rules guide product composition and do not alter wire semantics.
+
+## Onboarding for decision and inference bots
+
+Explain the application in familiar terms before naming model primitives: an app receives text, asks a question with criteria, and uses the returned decision for its next step. Show **input → criteria → result** with one concrete example. Clarify what the surrounding code does and what the bot merely evaluates; a decision preview does not execute a command or control a browser.
+
+Offer a free catalogue and free case preview before paid or quota-consuming inference. A preview shows why the task matters, the exact input and the criteria. Give it one explicit primary action such as “Run example”; opening a card, reading its source, returning to a cached result and viewing API details should not silently repeat inference. “Use my text” can reuse the visible criteria, with the charge boundary stated before submission. Apply request limits to actual inference separately from navigation.
+
+Use source-backed case cards and label provenance accurately: our observed experiment, an external project, or a synthetic teaching adaptation. An external repository proves its published implementation, not your deployment or a universal reliability claim. Identify adapted prompts as adaptations; do not imply they are the author's original inputs. Keep the source link available. Put longer attribution and scope notes in a closed `details` block such as “About this example”, so the initial screen prioritizes purpose, input, criteria and next action. Keep any necessary immediate limitation visible.
+
+After inference, explain how the decision could be used, show actual returned values, and distinguish probabilities and model confidence from verified facts. Do not manufacture missing probabilities or substitute recorded demo numbers for a live result. Keep raw JSON accessible in a native `pre` block with `language: "json"`. Review onboarding against observed product outcomes and adjust explanation as well as visual hierarchy.
 
 ## Helper contract
 
