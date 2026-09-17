@@ -12,6 +12,31 @@ def cell(text='value', **extra):
 
 
 class RichUI(unittest.TestCase):
+    def test_photo_references_literal_caption_and_detachment(self):
+        for media in ('attach://diagram', 'AgAC_file-id', 'https://example.com/diagram.png'):
+            block = {'type': 'photo', 'photo': {'type': 'photo', 'media': media},
+                     'caption': {'text': '<literal> & схема'}}
+            result = ui.build_blocks_message([block])
+            block['caption']['text'] = 'changed'
+            self.assertEqual(result['blocks'][0]['caption']['text'], '<literal> & схема')
+            self.assertEqual(result['blocks'][0]['photo']['media'], media)
+
+    def test_photo_limits_and_malformed_media(self):
+        valid = {'type': 'photo', 'photo': {'type': 'photo', 'media': 'attach://diagram'}}
+        ui.build_blocks_message([valid] * 50)
+        with self.assertRaises(ValueError):
+            ui.build_blocks_message([{'type': 'details', 'summary': 'photos', 'blocks': [valid] * 51}])
+        for media in ('', 'attach://', 'attach://../secret', '/private/file.png', 'file:///tmp/x',
+                      'https://[', 'https://example.com/\n', None, []):
+            with self.subTest(media=media), self.assertRaises(ValueError):
+                ui.build_blocks_message([{'type': 'photo', 'photo': {'type': 'photo', 'media': media}}])
+        for photo in (None, {'type': 'video', 'media': 'id'}, {'type': 'photo', 'media': 'id', 'caption': 'ignored'}):
+            with self.subTest(photo=photo), self.assertRaises(ValueError):
+                ui.build_blocks_message([{'type': 'photo', 'photo': photo}])
+        for caption in ({'text': {'type': 'bold', 'text': 'entity'}}, {'text': 'x' * 32769}, None):
+            with self.subTest(caption=repr(caption)[:50]), self.assertRaises(ValueError):
+                ui.build_blocks_message([{**valid, 'caption': caption}])
+
     def test_literal_json_detached_and_compact_table(self):
         raw = '{"x":"<script>&\\n😀"}'
         blocks = [{'type': 'heading', 'text': 'Result', 'size': 2},

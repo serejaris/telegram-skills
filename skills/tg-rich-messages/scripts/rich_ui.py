@@ -1,15 +1,17 @@
 """Deterministic Bot API 10.3 UI subset. MIT; no I/O or credentials.
 
-Supported blocks: heading, paragraph, pre, table, details. RichText is
+Supported blocks: heading, paragraph, pre, table, details, photo. RichText is
 restricted to literal strings. This is intentionally not the full Bot API.
 """
 from copy import deepcopy
+import re
 from urllib.parse import urlsplit
 
-__version__ = '1.3.0'
+__version__ = '1.4.0'
 MAX_TEXT = 32768
 MAX_BLOCKS = 500
 MAX_DEPTH = 16
+MAX_MEDIA = 50
 STYLES = frozenset(('danger', 'success', 'primary'))
 
 
@@ -34,6 +36,20 @@ def _true_fields(value, names):
             raise ValueError('optional flag must be true or omitted')
 
 
+def _photo_reference(value):
+    if not _text(value) or any(c.isspace() or ord(c) < 32 for c in value):
+        raise ValueError('invalid photo reference')
+    if re.fullmatch(r'(?:attach://)?[A-Za-z0-9_-]+', value):
+        return
+    try:
+        parsed = urlsplit(value)
+        valid = parsed.scheme in ('http', 'https') and bool(parsed.hostname)
+    except ValueError:
+        valid = False
+    if not valid:
+        raise ValueError('photo requires a file_id, HTTP URL or attach://name')
+
+
 def build_blocks_message(blocks, *, skip_entity_detection=True):
     """Return a detached InputRichMessage or raise ValueError.
 
@@ -43,10 +59,10 @@ def build_blocks_message(blocks, *, skip_entity_detection=True):
     """
     if type(skip_entity_detection) is not bool:
         raise ValueError('skip_entity_detection must be boolean')
-    count = chars = 0
+    count = chars = media = 0
 
     def visit(items, depth):
-        nonlocal count, chars
+        nonlocal count, chars, media
         if not isinstance(items, list) or not items or depth > MAX_DEPTH:
             raise ValueError('blocks must be nonempty and within nesting limit')
         for block in items:
@@ -64,6 +80,16 @@ def build_blocks_message(blocks, *, skip_entity_detection=True):
                     raise ValueError('heading size must be 1..6')
                 if 'language' in block:
                     _text(block['language'])
+            elif kind == 'photo':
+                _fields(block, {'type', 'photo'}, ('caption',))
+                _fields(block['photo'], {'type', 'media'})
+                if block['photo']['type'] != 'photo':
+                    raise ValueError('photo block requires photo media')
+                _photo_reference(block['photo']['media'])
+                if 'caption' in block:
+                    _fields(block['caption'], {'text'})
+                    chars += _text(block['caption']['text'])
+                media += 1
             elif kind == 'details':
                 _fields(block, {'type', 'summary', 'blocks'}, ('is_open',))
                 chars += _text(block['summary'])
@@ -97,7 +123,7 @@ def build_blocks_message(blocks, *, skip_entity_detection=True):
                         raise ValueError('table row spans exceed 20 columns')
             else:
                 raise ValueError('unsupported block type')
-            if count > MAX_BLOCKS or chars > MAX_TEXT:
+            if count > MAX_BLOCKS or chars > MAX_TEXT or media > MAX_MEDIA:
                 raise ValueError('rich message exceeds documented limits')
 
     try:
