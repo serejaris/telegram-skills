@@ -1,6 +1,6 @@
 {
   "name": "telegram-skills",
-  "description": "Agent Skills for Telegram Bot API 10.2 Rich Messages — outgoing blocks, uploaded media, structured documents, and streaming AI replies",
+  "description": "Agent Skills for Telegram Bot API 10.3 Rich Messages — outgoing blocks, uploaded media, structured documents, and streaming AI replies",
   "owner": {
     "name": "serejaris"
   },
@@ -8,8 +8,8 @@
     {
       "name": "telegram-skills",
       "source": "./",
-      "description": "Telegram Bot API 10.2 Rich Messages skills: send outgoing blocks, uploaded media, structured documents, and streaming AI replies",
-      "version": "1.2.0",
+      "description": "Telegram Bot API 10.3 Rich Messages skills: send outgoing blocks, uploaded media, structured documents, and streaming AI replies",
+      "version": "1.3.0",
       "license": "MIT"
     }
   ]

@@ -1,8 +1,26 @@
-# Telegram Bot API 10.2 — Rich Message Formatting: Canonical Reference
+# Telegram Bot API 10.3 — Rich Message Formatting: Canonical Reference
 
-**API Version:** 10.2
-**Release Date:** July 14, 2026
+**API Version:** 10.3
+**Release Date:** August 24, 2026
 **Source:** https://core.telegram.org/bots/api
+
+---
+
+## Bot UI additions in 10.3
+
+Primary sources: [InlineKeyboardButton](https://core.telegram.org/bots/api#inlinekeyboardbutton), [RichMessageButton](https://core.telegram.org/bots/api#richmessagebutton), [InputRichBlockButtons](https://core.telegram.org/bots/api#inputrichblockbuttons), [InputRichBlockTable](https://core.telegram.org/bots/api#inputrichblocktable).
+
+- Inline keyboard `style`: `danger` (red), `success` (green), `primary` (blue). Omit for the app default. `link` is invalid on inline keyboard buttons.
+- RichMessageButton accepts `danger`, `success`, `primary`, and `link`; `link` is allowed only with `callback_data`. Rich button text may contain plain text, custom emoji, and date-time entities. Exactly one action is required; callback data is 1–64 bytes.
+- InputRichBlockButtons: `{"type":"buttons","buttons":[RichMessageButton,...],"align":"left"}`. One row contains 1–8 buttons. Optional alignment: `left`, `center`, `right`.
+- Tables accept `is_compact: true`. Every cell requires `align` (`left|center|right`) and `valign` (`top|middle|bottom`); omitted cell text makes it invisible.
+- Expandable quotations use `type: "expandable_blockquote"`, literal `text: RichText` and optional `credit` (not nested blocks or `is_open`).
+- Document blocks use `type: "document"`, `document: InputMediaDocument`, optional rich `caption`; the nested media caption is ignored. Markup media references also support `tg://document?id=...`.
+- `sendRichMessage` accepts `ephemeral_message_parameters`; draft methods accept `can_stop` and `keep_on_stop`. Ephemeral delivery and generation stopping require their own application lifecycle.
+
+`sendRichMessage` creates a message. `editMessageText` updates a known message with exactly one of `text` or `rich_message`; there is no `editRichMessage` method. Keep the returned Bot API `message_id` and bind callbacks to the actual screen message. A timeout or 5xx has an unknown delivery outcome; do not blindly send a duplicate.
+
+Direct block text is literal RichText, not HTML markup. Dynamic strings should remain strings; do not HTML-escape them before JSON encoding. Use `skip_entity_detection: true` when automatic mentions and links are unwanted. Native JSON uses `{"type":"pre","text":"{...}","language":"json"}`.
 
 ---
 
@@ -24,6 +42,7 @@
 | allow_paid_broadcast | Boolean | Optional | Pass *True* to allow up to 1000 messages per second, ignoring broadcasting limits for a fee of 0.1 Telegram Stars per message. The relevant Stars will be withdrawn from the bot's balance. |
 | message_effect_id | String | Optional | Unique identifier of the message effect to be added to the message; for private chats only |
 | suggested_post_parameters | SuggestedPostParameters | Optional | A JSON-serialized object containing the parameters of the suggested post to send; for direct messages chats only. If the message is sent as a reply to another suggested post, then that suggested post is automatically declined. |
+| ephemeral_message_parameters | EphemeralMessageParameters | Optional | Parameters for an ephemeral message (10.3) |
 | reply_parameters | ReplyParameters | Optional | Description of the message to reply to |
 | reply_markup | InlineKeyboardMarkup or ReplyKeyboardMarkup or ReplyKeyboardRemove or ForceReply | Optional | Additional interface options |
 
@@ -41,6 +60,8 @@
 | message_thread_id | Integer | Optional | Unique identifier for the target message thread |
 | draft_id | Integer | **Yes** | Unique identifier of the message draft; must be non-zero. Changes to drafts with the same identifier are animated. |
 | rich_message | InputRichMessage | **Yes** | The partial message to be streamed |
+| can_stop | Boolean | Optional | Show a stop button; handle stopped_message_generation updates |
+| keep_on_stop | Boolean | Optional | Keep the draft after stopping; send a final message to persist it |
 
 ---
 
@@ -379,6 +400,7 @@ RichBlockParagraph, RichBlockSectionHeading, RichBlockPreformatted, RichBlockFoo
 | type | String | Type of the block, always **"table"** |
 | cells | Array of Array of RichBlockTableCell | Cells of the table |
 | is_bordered | True | *Optional*. *True*, if the table has borders |
+| is_compact | True | *Optional*. Compact cell indents (10.3) |
 | is_striped | True | *Optional*. *True*, if the table is striped |
 | caption | RichText | *Optional*. Caption of the table |
 

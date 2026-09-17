@@ -525,3 +525,7 @@ caption underneath.
 
 Use `voice_note` instead of `audio` for a single spoken remark — it renders as a voice
 message with a waveform and no track metadata.
+
+## Deterministic bot UI cards (Bot API 10.3)
+
+See [consumer integration](consumer-integration.md) for a network-free Python example using literal block strings, native JSON, a compact table, and styled inline buttons. The helper is transport-independent: keep auth, delivery targets, callbacks and acknowledged message IDs in your application.

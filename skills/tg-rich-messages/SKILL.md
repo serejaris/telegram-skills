@@ -1,6 +1,6 @@
 ---
 name: tg-rich-messages
-description: "Use when sending structured or richly formatted messages from a Telegram bot — tables, section headings, collapsible blocks, photo galleries, maps, math formulas, audio, or streaming AI responses. Also use for understanding rich message types and limits when plain sendMessage with parse_mode HTML/Markdown is not sufficient."
+description: "Use when sending structured or richly formatted messages from a Telegram bot — tables, section headings, collapsible blocks, photo galleries, maps, math formulas, audio, native styled buttons, bot UI cards, or streaming AI responses. Also use for understanding rich message types and limits when plain sendMessage with parse_mode HTML/Markdown is not sufficient."
 license: MIT
 ---
 
@@ -32,6 +32,16 @@ Plain `sendMessage` with `parse_mode: HTML` still covers bold/italic/code/spoile
 for simple formatting. Move to `sendRichMessage` only when you need structural blocks.
 
 ---
+
+## Bot UI composition (10.3)
+
+Use the network-free [Python helper](scripts/rich_ui.py) for deterministic heading, paragraph, pre, compact table, and details blocks with literal strings. It validates a narrow subset, not the complete Bot API. See [consumer integration](consumer-integration.md) for the exact API, provenance, send/edit lifecycle and local tests.
+
+Inline keyboard styles: `primary`, `success`, `danger`; omit for app default. RichMessageButton additionally accepts `link` only for callback buttons. Never put `link` on InlineKeyboardButton. Native rich button rows use `type: "buttons"`, 1–8 buttons and optional `align: left|center|right`; these are documented in the reference and intentionally outside the helper subset.
+
+Direct block text is literal RichText. Keep dynamic strings unescaped; HTML escaping belongs only to an HTML renderer. A native JSON code block is `{"type":"pre","text":json_string,"language":"json"}`. Table cells require `align` and `valign`; compact tables use `is_compact: true`.
+
+Update an acknowledged screen with `editMessageText.rich_message`, exactly one of `text` and `rich_message`. Keep returned Bot API message IDs and check callback ownership/current-screen binding. There is no `editRichMessage`. Do not silently duplicate a message after an unknown delivery outcome.
 
 ## Sending: InputRichMessage
 
@@ -297,7 +307,7 @@ that failed with a definite 4xx.
 | `pullquote` | `<aside>` | Centered pull quote | `text`, `credit?: RichText` |
 | `details` | `<details>` | Collapsible section | `summary: RichText`, `blocks: RichBlock[]`, `is_open?: true` |
 | `table` | `<table>` | Data table | `cells: RichBlockTableCell[][]`, `is_bordered?`, `is_striped?`, `caption?: RichText` |
-| `map` | `<tg-map>` | Static embedded map | `location: Location`, `zoom: 13–20`, `width`, `height`, `caption?` |
+| `map` | `<tg-map>` | Static embedded map | `location: Location`, `zoom: 0–24`, `width`, `height`, `caption?` |
 | `collage` | `<tg-collage>` | Photo/video grid | `blocks: RichBlock[]`, `caption?: RichBlockCaption` |
 | `slideshow` | `<tg-slideshow>` | Swipeable photo/video deck | `blocks: RichBlock[]`, `caption?: RichBlockCaption` |
 | `photo` | `<img>` | Photo block | `photo: PhotoSize[]`, `has_spoiler?: true`, `caption?` |

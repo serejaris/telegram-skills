@@ -1,10 +1,12 @@
 # telegram-skills
 
-**Agent Skills for Telegram Bot API 10.2 Rich Messages** — works with Claude Code, Codex CLI, Cursor, and any agent supporting the [Agent Skills standard (agentskills.io)](https://agentskills.io). Teach your AI agent to send structured documents, tables, galleries, maps, uploaded media, and streaming AI replies from any Telegram bot.
+**Agent Skills for Telegram Bot API 10.3 Rich Messages** — works with Claude Code, Codex CLI, Cursor, and any agent supporting the [Agent Skills standard (agentskills.io)](https://agentskills.io). Teach your AI agent to send structured documents, tables, galleries, maps, uploaded media, and streaming AI replies from any Telegram bot.
 
 Bot API 10.1 (June 11, 2026) introduced [Rich Messages](https://core.telegram.org/bots/api#rich-message-formatting-options): bots can send document-grade structured messages and stream AI-generated replies with a native "thinking" block. Bot API 10.2 (July 14, 2026) added outgoing block JSON plus explicit media bindings, including Telegram `file_id`, HTTP URLs, and multipart uploads.
 
-No major bot library supports it yet. These skills work through raw HTTP calls to the Bot API — no dependencies, any stack.
+These skills work through raw HTTP calls to the Bot API — no bot framework required, any stack.
+
+Bot API 10.3 (August 24, 2026) adds native rich-message button rows and compact tables. Styled inline keyboard buttons use `primary`, `success`, and `danger`. The dependency-free [Python UI helper](skills/tg-rich-messages/scripts/rich_ui.py) builds validated literal block payloads and native inline buttons; it performs no network calls. See [consumer integration](skills/tg-rich-messages/consumer-integration.md).
 
 ## Install
 
@@ -59,7 +61,7 @@ Then ask your agent — e.g. *"send this report to my Telegram channel as a rich
 
 ## Reference
 
-- [`reference/rich-messages-spec.md`](reference/rich-messages-spec.md) — full extracted spec: every type, every field, all limits (Bot API 10.2)
+- [`reference/rich-messages-spec.md`](reference/rich-messages-spec.md) — core extracted spec, limits and Bot API 10.3 UI additions
 - Official: [Bot API docs](https://core.telegram.org/bots/api) · [changelog](https://core.telegram.org/bots/api-changelog) · demo bot [@RichTextDemoBot](https://t.me/RichTextDemoBot)
 
 ## License
