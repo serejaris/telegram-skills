@@ -35,7 +35,7 @@ for simple formatting. Move to `sendRichMessage` only when you need structural b
 
 ## Bot UI composition (10.3)
 
-Use the network-free [Python helper](scripts/rich_ui.py) for deterministic heading, paragraph, pre, compact table, and details blocks with literal strings. It validates a narrow subset, not the complete Bot API. See [consumer integration](consumer-integration.md) for the exact API, provenance, send/edit lifecycle and local tests.
+Use the network-free [Python helper](scripts/rich_ui.py) for deterministic heading, paragraph, pre, compact table, details and photo blocks with literal strings. It validates a narrow subset, not the complete Bot API. Photo uploads stay in the consumer's authorized transport. See [consumer integration](consumer-integration.md) for the exact API, illustrated previews, provenance, send/edit lifecycle and local tests.
 
 Inline keyboard styles: `primary`, `success`, `danger`; omit for app default. Product composition: at most one primary CTA per screen; neutral secondary navigation. Green is reserved for confirmed success or a desirable commit, red for genuinely destructive actions. Ordinary Back/Cancel, bonus offers and verification actions remain neutral. Start with heading → brief value → next action; move provider plumbing and limits to contextual About/limits views. Review actual mobile outcomes and user feedback before adding emphasis. RichMessageButton additionally accepts `link` only for callback buttons. Never put `link` on InlineKeyboardButton. Native rich button rows use `type: "buttons"`, 1–8 buttons and optional `align: left|center|right`; these are documented in the reference and intentionally outside the helper subset.
 
