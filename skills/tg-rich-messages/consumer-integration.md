@@ -19,11 +19,23 @@ rich_message = build_blocks_message([
 ])
 markup = {'inline_keyboard': [[
     styled_button('New question', callback_data='new', style='primary'),
-    styled_button('Cancel', callback_data='cancel', style='danger'),
+    styled_button('Back', callback_data='back'),
 ]]}
 # Pass these objects to your existing authorized HTTP transport:
 # sendRichMessage(chat_id=..., rich_message=rich_message, reply_markup=markup)
 ```
+
+## Screen hierarchy and restrained color
+
+Start with a short heading, one brief sentence explaining the value, and a clear next action. Keep provider configuration and technical details in contextual About/help views; put quotas, reset times and rate limits in a dedicated limits view or a relevant status.
+
+- Give each screen at most one `primary` CTA. A screen with equally important choices can use neutral buttons throughout.
+- Leave secondary navigation, Back, ordinary Cancel, About, limits and copy actions neutral by omitting `style`.
+- Use `success` only for confirmed success or an explicit desirable commit. A bonus offer, an eligibility check or an unverified result does not establish success.
+- Use `danger` only for a genuinely destructive action, such as deleting saved data; an ordinary wizard exit is neutral. Describe the consequence and require the appropriate confirmation for the product.
+- Do not apply a color to every button. Color is a semantic cue, supported by concise labels and screen context. Check the actual mobile outcome and adjust hierarchy when user feedback shows visual overload.
+
+The helper continues to support every documented style; these rules guide product composition and do not alter wire semantics.
 
 ## Helper contract
 

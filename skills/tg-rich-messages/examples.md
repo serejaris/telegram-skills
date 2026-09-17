@@ -529,3 +529,21 @@ message with a waveform and no track metadata.
 ## Deterministic bot UI cards (Bot API 10.3)
 
 See [consumer integration](consumer-integration.md) for a network-free Python example using literal block strings, native JSON, a compact table, and styled inline buttons. The helper is transport-independent: keep auth, delivery targets, callbacks and acknowledged message IDs in your application.
+
+
+### Short welcome with one next action
+
+```python
+welcome = build_blocks_message([
+    {'type': 'heading', 'size': 2, 'text': 'Try a decision'},
+    {'type': 'paragraph', 'text': 'Compare options and see the result with probabilities.'},
+    {'type': 'paragraph', 'text': 'Start with an example, or prepare your own question.'},
+])
+welcome_keyboard = {'inline_keyboard': [
+    [styled_button('Try example', callback_data='example', style='primary')],
+    [styled_button('My question', callback_data='custom'),
+     styled_button('About', callback_data='about')],
+]}
+```
+
+Secondary navigation uses the theme default. Put technical setup in About and quotas/reset rules in a dedicated limits view. An eligibility check does not use green until success is actually established. A normal wizard Cancel is neutral; reserve red for an action that destroys saved data or another real destructive consequence. Use the actual rendered screen and user feedback to refine emphasis; never color the whole keyboard by default.
