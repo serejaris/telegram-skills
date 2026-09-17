@@ -140,11 +140,11 @@ editMessageText       POST /bot<TOKEN>/editMessageText
   rich_message   InputRichMessage    (mutually exclusive with "text")
 ```
 
-`InputRichMessage` fields: exactly one of `html` or `markdown`, optional `is_rtl`, optional `skip_entity_detection`.
+`InputRichMessage` fields: exactly one of `html`, `markdown`, or `blocks`, optional `is_rtl`, optional `skip_entity_detection`.
 
 ---
 
 ## Related
 
 - [`../tg-rich-messages/SKILL.md`](../tg-rich-messages/SKILL.md) — full block & inline type reference
-- [`../../reference/rich-messages-spec.md`](../../reference/rich-messages-spec.md) — extracted Bot API 10.1 spec
+- [`../../reference/rich-messages-spec.md`](../../reference/rich-messages-spec.md) — core Bot API 10.3 reference

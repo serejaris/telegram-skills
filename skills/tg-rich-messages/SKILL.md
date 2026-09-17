@@ -415,7 +415,7 @@ Content here.
 | Max nesting levels | **16** |
 | Max media attachments (photos, videos, audio) | **50** |
 | Max table columns | **20** |
-| Map zoom range | **13–20** |
+| Map zoom range | **0–24** |
 
 ### Critical constraints
 
@@ -476,7 +476,7 @@ block as collapsible media.
 | Calling `sendRichMessageDraft` with `@username` | Use numeric `chat_id` (Integer) |
 | Sending `text` and `rich_message` together in `editMessageText` | Pass exactly one |
 | Forgetting to call `sendRichMessage` after streaming | Draft expires after 30 s — always finalize with full message |
-| Assuming zoom 1–20 for map | Valid range is **13–20** |
+| Assuming a narrower fixed map zoom range | Outgoing InputRichBlockMap.zoom is optional and ranges **0–24** |
 | Using `skip_entity_detection` for manual link formatting | Set it to `true` to prevent double-detection when you already mark up URLs manually |
 
 ---

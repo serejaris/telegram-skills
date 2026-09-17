@@ -427,7 +427,7 @@ RichBlockParagraph, RichBlockSectionHeading, RichBlockPreformatted, RichBlockFoo
 |---|---|---|
 | type | String | Type of the block, always **"map"** |
 | location | Location | Location of the center of the map |
-| zoom | Integer | Map zoom level; 13-20 |
+| zoom | Integer | Map zoom level (received RichBlockMap); outgoing InputRichBlockMap.zoom is optional, 0–24 |
 | width | Integer | Expected width of the map |
 | height | Integer | Expected height of the map |
 | caption | RichBlockCaption | *Optional*. Caption of the block |
@@ -1030,7 +1030,7 @@ Telegram clients покажут алерт «Open this link?» с полным U
 
 ### Zoom карты
 
-- `RichBlockMap.zoom` принимает значения **13–20**.
+- Исходящий `InputRichBlockMap.zoom` опционален и принимает **0–24**; полученный `RichBlockMap.zoom` описывает фактический масштаб.
 
 ### Ordered list: типы нумерации
 
