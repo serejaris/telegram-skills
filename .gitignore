@@ -7,3 +7,6 @@ __pycache__/
 *.db
 .beads-credential-key
 .beads/proxieddb/
+
+# Beads workspace gate (sibling of .beads)
+/.beads.gate.lock
