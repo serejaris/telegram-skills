@@ -1,7 +1,9 @@
 {
   "database": "dolt",
   "backend": "dolt",
-  "dolt_mode": "embedded",
-  "dolt_database": "tgs",
-  "project_id": "ac309f5f-e665-457d-809f-a1f674d65fb5"
+  "dolt_mode": "server",
+  "dolt_database": "telegram_skills",
+  "project_id": "ac309f5f-e665-457d-809f-a1f674d65fb5",
+  "dolt_server_host": "127.0.0.1",
+  "dolt_server_user": "beads"
 }

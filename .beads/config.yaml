@@ -66,3 +66,16 @@
 # - github.token    → use GITHUB_TOKEN env var instead
 
 sync.remote: "git+https://github.com/serejaris/telegram-skills.git"
+
+# Central SQL server on citadel; remote clients override host/port via env.
+dolt.mode: "server"
+dolt.host: "127.0.0.1"
+dolt.port: 3307
+dolt.user: "beads"
+dolt.database: "telegram_skills"
+dolt.auto-start: false
+dolt.auto-commit: "off"
+dolt.max-conns: 2
+dolt.pool-read-timeout: "60s"
+dolt.pool-write-timeout: "60s"
+backup.enabled: false
