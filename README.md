@@ -8,6 +8,8 @@ These skills work through raw HTTP calls to the Bot API — no bot framework req
 
 Bot API 10.3 (August 24, 2026) adds native rich-message button rows and compact tables. Styled inline keyboard buttons use `primary`, `success`, and `danger`. The dependency-free [Python UI helper](skills/tg-rich-messages/scripts/rich_ui.py) builds validated literal block payloads and native inline buttons; it performs no network calls. See [consumer integration](skills/tg-rich-messages/consumer-integration.md).
 
+Polls (Bot API 9.1–10.1): up to 12 options, a 1024-char description with media, so a post and its poll fit in one message. See [`tg-polls`](skills/tg-polls/).
+
 ## Install
 
 **Universal (recommended)**
@@ -57,6 +59,7 @@ Then ask your agent — e.g. *"send this report to my Telegram channel as a rich
 | [`tg-rich-messages`](skills/tg-rich-messages/) | Core reference: markup, outgoing block JSON, media bindings and uploads, preflight, limits, raw HTTP sending |
 | [`tg-markdown-to-rich`](skills/tg-markdown-to-rich/) | Convert Markdown into a rich message and bind `file_id`, URL, or uploaded media |
 | [`tg-rich-streaming`](skills/tg-rich-streaming/) | Stream LLM output into a chat: draft animation, thinking block, mandatory finalization |
+| [`tg-polls`](skills/tg-polls/) | Polls and quizzes from a bot or a user account: text + poll in one message via description, media, 12 options, all poll settings and limits |
 | [`tg-rich-digest`](skills/tg-rich-digest/) | Digest and channel-article patterns: flat layout, preview + collapsed full version, media as evidence, preflight gate |
 
 ## Reference
