@@ -86,7 +86,7 @@ await client.send_file(chat, InputMediaPoll(poll=poll), caption=post_text)  # ca
 
 1. Preview in your own chat (Saved Messages or a bot DM), then send to the audience.
 2. Options and question within the limits above; description ≤ 1024.
-3. Bot API has no method to edit a sent poll's question or options. Fix mistakes in the preview.
+3. A sent poll can't be edited: Bot API has no method for its question or options, and the description is frozen too. Verified 2026-10-16 from a user account: `messages.editMessage` with new text on a poll returns `MESSAGE_NOT_MODIFIED`, and Telegram apps show no Edit for polls. Fix mistakes in the preview; a correction is a new poll.
 
 ## Sources
 
