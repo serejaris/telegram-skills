@@ -163,7 +163,9 @@ def record_payment(conn, payment):
         return not _settle_estimate(conn, payment) and _insert(conn, payment)
 
 
-def reconcile_transaction(conn, star_transaction):
+def reconcile_transaction(conn, star_transaction, *, since):
+    if not _is_int(since) or since < 0:
+        raise ValueError('since is not a Unix time')
     if not isinstance(star_transaction, dict):
         raise ValueError('StarTransaction is not an object')
     charge_id = star_transaction.get('id')
@@ -173,6 +175,8 @@ def reconcile_transaction(conn, star_transaction):
         raise ValueError('StarTransaction has no id')
     if not _is_int(amount) or not _is_int(date):
         raise ValueError('StarTransaction amount and date must be integers')
+    if date < since:
+        return False
     receiver = star_transaction.get('receiver')
     if _is_invoice_partner(receiver):
         return record_refund(conn, charge_id)

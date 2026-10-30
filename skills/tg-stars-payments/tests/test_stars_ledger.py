@@ -366,22 +366,48 @@ class ProcessCrash(FileLedger):
 
 
 class Reconciling(FileLedger):
+    def reconcile(self, transaction):
+        return ledger.reconcile_transaction(self.conn, transaction, since=START - DAY)
+
+    def test_since_is_required(self):
+        with self.assertRaises(TypeError):
+            ledger.reconcile_transaction(self.conn, incoming())
+        for since in (None, '0', -1, True, 1.5):
+            with self.subTest(since), self.assertRaises(ValueError):
+                ledger.reconcile_transaction(self.conn, incoming(), since=since)
+
+    def test_history_before_since_stays_out_of_the_queue(self):
+        cutoff = START + 10 * DAY
+        history = [incoming(f'old-{day}', START + day * DAY) for day in range(10)]
+        lost = incoming('lost', cutoff)
+        results = [ledger.reconcile_transaction(self.conn, item, since=cutoff)
+                   for item in (*history, lost)]
+        self.assertEqual(results, [False] * 10 + [True])
+        self.assertEqual([p.charge_id for p in ledger.pending(self.conn, NOW)], ['lost'])
+
+    def test_refund_before_since_changes_nothing(self):
+        ledger.record_payment(self.conn, ledger.parse_payment(paid()))
+        refund = {'id': 'stx-1', 'amount': 5, 'date': START,
+                  'receiver': {'type': 'user', 'transaction_type': 'invoice_payment', 'user': {'id': 42}}}
+        self.assertFalse(ledger.reconcile_transaction(self.conn, refund, since=START + 1))
+        self.assertEqual(len(ledger.pending(self.conn, NOW)), 1)
+
     def test_recovers_a_lost_one_time_payment_once(self):
-        self.assertTrue(ledger.reconcile_transaction(self.conn, incoming()))
-        self.assertFalse(ledger.reconcile_transaction(self.conn, incoming()))
+        self.assertTrue(self.reconcile(incoming()))
+        self.assertFalse(self.reconcile(incoming()))
         self.assertFalse(ledger.record_payment(self.conn, ledger.parse_payment(paid())))
         self.assertEqual(ledger.pending(self.conn, NOW), [ledger.Payment('stx-1', 0, 42, 5, 'sku-1')])
 
     def test_transaction_matches_a_recorded_period(self):
         ledger.record_payment(self.conn, renewal(expires_at=START + PERIOD))
         late = START + 3600
-        self.assertFalse(ledger.reconcile_transaction(self.conn, incoming('sub', late, PERIOD)))
+        self.assertFalse(self.reconcile(incoming('sub', late, PERIOD)))
         self.assertEqual(len(ledger.pending(self.conn, NOW)), 1)
 
     def test_recovered_renewal_delivers_once_when_the_update_arrives_late(self):
         renewed_at = START + 3600
         true_expiry = START + PERIOD
-        self.assertTrue(ledger.reconcile_transaction(self.conn, incoming('sub', renewed_at, PERIOD)))
+        self.assertTrue(self.reconcile(incoming('sub', renewed_at, PERIOD)))
         due = ledger.pending(self.conn, NOW)
         self.assertEqual(due[0].subscription_expires_at, renewed_at + PERIOD)
         self.assertTrue(ledger.claim(self.conn, due[0], NOW))
@@ -392,7 +418,7 @@ class Reconciling(FileLedger):
 
     def test_late_update_during_delivery_keeps_the_claimed_key(self):
         renewed_at = START + 3600
-        ledger.reconcile_transaction(self.conn, incoming('sub', renewed_at, PERIOD))
+        self.reconcile(incoming('sub', renewed_at, PERIOD))
         due = ledger.pending(self.conn, NOW)[0]
         self.assertTrue(ledger.claim(self.conn, due, NOW))
         self.assertFalse(ledger.record_payment(self.conn, renewal(expires_at=START + PERIOD)))
@@ -403,9 +429,9 @@ class Reconciling(FileLedger):
     def test_next_period_on_the_same_charge_stays_a_new_payment(self):
         ledger.record_payment(self.conn, renewal(expires_at=START + PERIOD))
         next_date = START + PERIOD
-        self.assertTrue(ledger.reconcile_transaction(self.conn, incoming('sub', next_date, PERIOD)))
+        self.assertTrue(self.reconcile(incoming('sub', next_date, PERIOD)))
         self.assertEqual(len(ledger.pending(self.conn, NOW)), 2)
-        self.assertFalse(ledger.reconcile_transaction(self.conn, incoming('sub', next_date, PERIOD)))
+        self.assertFalse(self.reconcile(incoming('sub', next_date, PERIOD)))
         self.assertFalse(ledger.record_payment(self.conn, renewal(expires_at=START + 2 * PERIOD)))
         self.assertEqual(len(ledger.pending(self.conn, NOW)), 2)
 
@@ -413,22 +439,21 @@ class Reconciling(FileLedger):
         ledger.record_payment(self.conn, ledger.parse_payment(paid()))
         refund = {'id': 'stx-1', 'amount': 5, 'date': START,
                   'receiver': {'type': 'user', 'transaction_type': 'invoice_payment', 'user': {'id': 42}}}
-        self.assertTrue(ledger.reconcile_transaction(self.conn, refund))
+        self.assertTrue(self.reconcile(refund))
         self.assertEqual(ledger.pending(self.conn, NOW), [])
 
     def test_refund_seen_first_stops_the_recovered_payment(self):
         refund = {'id': 'stx-1', 'amount': 5, 'date': START,
                   'receiver': {'type': 'user', 'transaction_type': 'invoice_payment', 'user': {'id': 42}}}
-        ledger.reconcile_transaction(self.conn, refund)
-        ledger.reconcile_transaction(self.conn, incoming())
+        self.reconcile(refund)
+        self.reconcile(incoming())
         self.assertEqual(ledger.pending(self.conn, NOW), [])
 
     def test_other_partners_are_ignored(self):
         for partner in ({'type': 'fragment'}, {'type': 'user', 'transaction_type': 'gift_purchase'}):
             transaction = {'id': 'x', 'amount': 1, 'date': START, 'source': partner}
-            self.assertFalse(ledger.reconcile_transaction(self.conn, transaction))
-            self.assertFalse(ledger.reconcile_transaction(
-                self.conn, {'id': 'x', 'amount': 1, 'date': START, 'receiver': partner}))
+            self.assertFalse(self.reconcile(transaction))
+            self.assertFalse(self.reconcile({'id': 'x', 'amount': 1, 'date': START, 'receiver': partner}))
         self.assertEqual(ledger.pending(self.conn, NOW), [])
 
     def test_broken_transactions_raise(self):
@@ -437,7 +462,7 @@ class Reconciling(FileLedger):
                   incoming(invoice_payload=None), incoming(user={}), incoming(period=-1)]
         for transaction in broken:
             with self.subTest(transaction), self.assertRaises(ValueError):
-                ledger.reconcile_transaction(self.conn, transaction)
+                self.reconcile(transaction)
 
 
 if __name__ == '__main__':

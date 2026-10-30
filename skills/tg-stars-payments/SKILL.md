@@ -91,7 +91,9 @@ Keep the unique key and the conditional claim in your own schema if you adopt th
 
 ### Recovery from getStarTransactions
 
-Use it after a lost update, after `drop_pending_updates`, and for dead-lettered payments. Page with `offset` and `limit` 1-100 and pass each [StarTransaction](https://core.telegram.org/bots/api#startransaction) to `ledger.reconcile_transaction(conn, transaction)`.
+Use it after a lost update, after `drop_pending_updates`, and for dead-lettered payments. Page with `offset` and `limit` 1-100 and pass each [StarTransaction](https://core.telegram.org/bots/api#startransaction) to `ledger.reconcile_transaction(conn, transaction, since=failure_time)`.
+
+`since` is required: set it to the Unix time of the failure, or to the moment the ledger went live if that is later. Transactions older than `since` return `False`. On a bot that sold before the ledger existed, a full history would queue every past buyer for delivery again.
 
 `StarTransaction` has `id`, `date` and, in `TransactionPartnerUser`, `subscription_period`. It has no `subscription_expiration_date`, which is half of the ledger key, so a renewal can't be rebuilt exactly. The helper matches by these rules:
 
