@@ -154,6 +154,8 @@ No purchase, refund or subscription was executed for this skill. These remain op
 - The behavior of a second `refundStarPayment` on one charge. Guard it with your ledger.
 - How `date` of a renewal in `getStarTransactions` relates to `subscription_expiration_date`. The half-period window in the recovery rules rests on the 30-day period alone.
 - Which transaction a `refunded_payment` means when one charge id covers several periods. It carries no expiry, so the ledger refunds the newest period it holds.
+- Whether a renewal in `getStarTransactions` always has `subscription_period`. The field is optional. Without it the helper records a one-time row, and a late `successful_payment` then adds a second row.
+- A repeated refund when renewals share a charge id. The next reconciliation passes the same outgoing transaction again, and `record_refund` takes the newest period not yet refunded, so one refund can withdraw one more period.
 - The shape of a refund in `getStarTransactions`: the helper expects `receiver` of type `user` with `transaction_type` `invoice_payment`, inferred from the field descriptions.
 
 ## Sources
