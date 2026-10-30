@@ -12,7 +12,7 @@ Checked against the official docs on 2026-10-30: Bot API 10.3 (latest, August 24
 
 No bot, client or device was used to write this skill. These checks wait for a live Mini App:
 
-- A fresh `initData` string with `signature` from a live bot in 2026. The check below rests on a real string from 2024-12-07, published by tma.js.
+- A fresh `initData` string with `signature` from a live bot in 2026. The repository's tests use synthetic vectors, so they prove this code matches the algorithm below, and only a live string proves Telegram still signs that way. No public vector for Telegram's Ed25519 key exists without a real person's data, so that key is untested here.
 - Launch behavior on a real iPhone and Android device. The launch table comes from the docs.
 - Origin protection: what a blocked call looks like, and whether subdomains and redirects count as the Mini App domain.
 - `mode=fullscreen` in links.
@@ -58,9 +58,9 @@ The main app and direct links open at full height by default; `mode=compact` ope
 
 `secret_key = HMAC_SHA256(key="WebAppData", msg=bot_token)`, then `hash = hex(HMAC_SHA256(key=secret_key, msg=data_check_string))`. The check string is all received fields except `hash`, URL-decoded, sorted by key, as `key=value`, joined with `\n`. Compare in constant time.
 
-**`signature` stays in this string.** The docs say "all received fields" and don't name it. The real string from tma.js matches only with `signature` kept; dropping it fails. Keep the exclusion list to `hash` alone.
+**`signature` stays in this string.** The docs say "all received fields" and don't name it. tma.js excludes only `hash` ([`validation.ts:94`](https://github.com/Telegram-Mini-Apps/tma.js/blob/a841aba28517c138af7debf4ad557fcf0c1f92fd/packages/init-data/src/validation.ts#L94)). On 2026-10-30 a string that tma.js publishes as signed by Telegram (created 2024-12-07) matched only with `signature` kept. That string names a real person, so it stays out of this repository. Keep the exclusion list to `hash` alone.
 
-[`scripts/init_data.py`](scripts/init_data.py) does this with the standard library and no network:
+[`scripts/init_data.py`](scripts/init_data.py) does this with the standard library and no network. It rejects repeated keys, because a duplicated field could mean one thing to the check and another to your code. `max_age=0` skips the age check, and `now` overrides the clock in tests. JSON fields such as `user` stay strings for you to parse:
 
 ```python
 from init_data import InitDataError, validate
@@ -86,6 +86,7 @@ Share `initData` and `bot_id`; the third party verifies `signature`, an Ed25519 
 - Production key: `e7bf03a2fa4602af4580703d88dda5bb59f32ed8b02a56c187fe7d34caed242d`
 - Test key: `40055058a4ee38156a06562e52eece92a771bcd8346a8c4615cb7376eddf72ec`
 - Telegram sends the signature without `=` padding, and strict base64 decoders reject it. `third_party_payload` restores it.
+- The standard library has no Ed25519, so `third_party_payload` only prepares `(message, signature)` and the check stays with your verifier.
 - The docs require the third party to validate `auth_date` as well.
 
 ```python
@@ -129,4 +130,4 @@ Test server login, inspectors per platform and the mock for a plain browser: [`r
 
 - Mini Apps: https://core.telegram.org/bots/webapps · changelog https://core.telegram.org/bots/api-changelog · links https://core.telegram.org/api/links · deep linking https://core.telegram.org/bots/features#deep-linking
 - `telegram-web-app.js`: https://telegram.org/js/telegram-web-app.js?64
-- tma.js (MIT), vectors and `signature` handling: https://github.com/Telegram-Mini-Apps/tma.js/blob/master/packages/init-data/src/validation.ts · padding note https://github.com/Telegram-Mini-Apps/tma.js/blob/master/apps/docs/platform/init-data.md
+- tma.js, `signature` handling, read and not vendored: commit `a841aba28517c138af7debf4ad557fcf0c1f92fd`, `packages/init-data/src/validation.ts` (SHA-256 `1592acd7e04283cfb9a6103b0d48b5816f1e617ca0bd1e862277d534a65c1472`), MIT in `packages/init-data/LICENSE` (SHA-256 `c44881466bac14b6b7e30e35073940d15081efbadcf37f7e70993015cf0c0ef7`), fixture string in `packages/init-data/test/fixtures.ts` (SHA-256 `77825e04c296754da8d9667dfe072403725c442eb52f34dcdc48bbadbfa6189e`) · padding note https://github.com/Telegram-Mini-Apps/tma.js/blob/master/apps/docs/platform/init-data.md

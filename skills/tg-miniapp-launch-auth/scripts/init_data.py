@@ -1,5 +1,3 @@
-"""Check Telegram Mini App initData. Pure functions, standard library, no network."""
-
 import base64
 import hashlib
 import hmac
@@ -13,15 +11,12 @@ _SIGNATURE = re.compile(r'[A-Za-z0-9_-]+={0,2}')
 
 
 class InitDataError(ValueError):
-    """initData is malformed, unsigned, forged or expired. `code` names the reason."""
-
     def __init__(self, code):
         super().__init__(code)
         self.code = code
 
 
 def parse_init_data(raw):
-    """Decode the raw query string into a dict of strings. Rejects repeated keys."""
     if not isinstance(raw, str) or not raw:
         raise InitDataError('malformed')
     try:
@@ -40,12 +35,10 @@ def _check_string(fields, excluded):
 
 
 def data_check_string(fields):
-    """Bot-token scheme: every field except `hash`. `signature` stays in the string."""
     return _check_string(fields, {'hash'})
 
 
 def compute_hash(fields, bot_token):
-    """Hex HMAC-SHA-256 of the data-check-string under the WebAppData-derived key."""
     if not isinstance(bot_token, str) or not bot_token:
         raise InitDataError('malformed')
     secret_key = hmac.new(b'WebAppData', bot_token.encode(), hashlib.sha256).digest()
@@ -53,11 +46,6 @@ def compute_hash(fields, bot_token):
 
 
 def validate(raw, bot_token, max_age=DEFAULT_MAX_AGE, now=None):
-    """Return decoded fields of valid initData, else raise InitDataError.
-
-    `max_age` is seconds since `auth_date`; 0 skips the age check. `now` is Unix time,
-    defaulting to the system clock. JSON fields such as `user` stay strings for the caller.
-    """
     fields = parse_init_data(raw)
     received = fields.get('hash')
     if received is None:
@@ -78,11 +66,6 @@ def validate(raw, bot_token, max_age=DEFAULT_MAX_AGE, now=None):
 
 
 def third_party_payload(raw, bot_id):
-    """Return (message, signature) to pass to an Ed25519 verifier with Telegram's public key.
-
-    The standard library has no Ed25519, so verification stays with the caller. Telegram
-    sends the signature as base64url without padding; this function restores it.
-    """
     if isinstance(bot_id, bool) or not isinstance(bot_id, int) or bot_id <= 0:
         raise InitDataError('malformed')
     fields = parse_init_data(raw)
