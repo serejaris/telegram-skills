@@ -6,7 +6,7 @@ license: MIT
 
 # tg-polls
 
-Checked against the official docs on 2026-10-16: Bot API 10.3 (latest, August 24, 2026), MTProto layer 225+ (`poll`, `inputMediaPoll`), Telegram blog post of 2026-03-31 "AI Editor, Mighty Polls…".
+Checked against the official docs on 2026-10-30: Bot API 10.3 (latest, August 24, 2026), MTProto layer 225+ (`poll`, `inputMediaPoll`), Telegram blog post of 2026-03-31 "AI Editor, Mighty Polls…".
 
 ## One message: text + poll
 
@@ -51,7 +51,25 @@ Bot API name → MTProto flag on `poll`:
 - `country_codes` → `countries_iso2`.
 - Quiz: `type: "quiz"` + `correct_option_ids` (several correct answers allowed since 9.6) → `quiz` + `inputMediaPoll.correct_answers`.
 
-`chat_id` can't be a channel direct messages chat.
+`chat_id` can't be a channel direct messages chat: `sendPoll` rejects polls there.
+
+## Reading results
+
+Options can appear and disappear after sending, so positions aren't stable. Key votes by persistent id.
+
+| Field | Where | Meaning |
+|---|---|---|
+| `persistent_id` | `PollOption` | Option id that survives option addition and deletion |
+| `option_persistent_ids` | `PollAnswer` | Persistent ids of the chosen options; empty when the vote was retracted. `option_ids` holds 0-based positions |
+| `poll_option_added`, `poll_option_deleted` | `Message` service messages | `PollOptionAdded` / `PollOptionDeleted`: `option_persistent_id`, `option_text`, `option_text_entities`, optional `poll_message` |
+| `added_by_user`, `added_by_chat`, `addition_date` | `PollOption` | Who added the option and when; omitted for original options |
+| `poll_option_id` | `ReplyParameters` | Reply to a specific option, by persistent id |
+| `reply_to_poll_option_id` | `Message` | The option a message replies to |
+
+Limits on what a bot can read:
+
+- `poll_answer` updates arrive only for non-anonymous polls the bot sent itself. `poll` updates cover polls the bot sent and polls stopped manually. A bot can't count votes in someone else's poll beyond the `voter_count` it sees in a message.
+- Detailed poll statistics are MTProto only: `stats.getPollStats`, available when `pollResults.can_view_stats` is set. The Bot API has no equivalent. Telegram's blog says they become available after a poll receives 100 votes.
 
 ## Bot API example
 
@@ -91,5 +109,5 @@ await client.send_file(chat, InputMediaPoll(poll=poll), caption=post_text)  # ca
 ## Sources
 
 - Bot API: https://core.telegram.org/bots/api#sendpoll · changelog https://core.telegram.org/bots/api-changelog
-- MTProto: https://core.telegram.org/api/poll · https://core.telegram.org/constructor/inputMediaPoll · https://core.telegram.org/constructor/poll · client config https://core.telegram.org/api/config
-- Blog: https://telegram.org/blog/ai-editor-mighty-polls-and-more
+- MTProto: https://core.telegram.org/api/poll · https://core.telegram.org/constructor/inputMediaPoll · https://core.telegram.org/constructor/poll · client config https://core.telegram.org/api/config · poll statistics https://core.telegram.org/api/stats
+- Blog: https://telegram.org/blog/ai-editor-mighty-polls-and-more · https://telegram.org/blog/ai-bot-revolution-11-new-features
