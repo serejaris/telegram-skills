@@ -1,0 +1,28 @@
+name: tests
+
+on:
+  push:
+    branches: [main, 'feat/**']
+  pull_request:
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - run: python -m pip install cryptography
+      - run: |
+          status=0
+          for tests in skills/*/tests; do
+            echo "== $tests"
+            output=$(python -m unittest discover -s "$tests" -p 'test_*.py' 2>&1) || status=1
+            echo "$output"
+            if echo "$output" | grep -q 'skipped='; then
+              echo "::error::skipped tests in $tests"
+              status=1
+            fi
+          done
+          exit $status
