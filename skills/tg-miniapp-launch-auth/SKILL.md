@@ -12,7 +12,7 @@ Checked against the official docs on 2026-10-30: Bot API 10.3 (latest, August 24
 
 No bot, client or device was used to write this skill. These checks wait for a live Mini App:
 
-- A fresh `initData` string with `signature` from a live bot in 2026. The repository's tests use synthetic vectors, so they prove this code matches the algorithm below, and only a live string proves Telegram still signs that way. No public vector for Telegram's Ed25519 key exists without a real person's data, so that key is untested here.
+- A fresh `initData` string with `signature` from a live bot in 2026. The repository's tests use synthetic vectors, so they prove this code matches the algorithm below, and only a live string proves Telegram still signs that way. We found no public vector for Telegram's Ed25519 key without a real person's data, so that key is untested here.
 - Launch behavior on a real iPhone and Android device. The launch table comes from the docs.
 - Origin protection: what a blocked call looks like, and whether subdomains and redirects count as the Mini App domain.
 - `mode=fullscreen` in links.

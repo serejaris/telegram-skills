@@ -1,20 +1,3 @@
-# Synthetic vectors. Nothing here came from Telegram or from a real account: the token,
-# bot id and user are invented, and the Ed25519 key is not Telegram's.
-# init_data.py did not produce the constants. They were computed beforehand with OpenSSL
-# 4.1.0, and Node crypto.verify confirmed the signature:
-#
-#   seed=$(printf %s 'telegram-skills ed25519 test key' | openssl dgst -sha256 -r | cut -d' ' -f1)
-#   printf '302e020100300506032b657004220420%s' "$seed" | xxd -r -p |
-#     openssl pkey -inform DER -out key.pem
-#   openssl pkey -in key.pem -pubout -outform DER | tail -c 32 | xxd -p -c 64     # PUBLIC_KEY
-#   openssl pkeyutl -sign -inkey key.pem -rawin -in message -out sig              # SIGNATURE
-#   openssl base64 -A -in sig | tr '+/' '-_' | tr -d '='
-#   secret=$(printf %s "$TOKEN" | openssl dgst -sha256 -hmac WebAppData -r | cut -d' ' -f1)
-#   openssl dgst -sha256 -mac HMAC -macopt hexkey:$secret -r check-string         # *_HASH
-#
-# `message` is "<BOT_ID>:WebAppData\n" plus the sorted fields without hash and signature.
-# `check-string` is the sorted fields without hash, so it includes signature.
-# Each line of both files is key=value; lines are joined with \n, no trailing newline.
 from urllib.parse import quote
 
 TOKEN = 'test-token-not-a-real-bot'
