@@ -67,11 +67,17 @@ for due in ledger.pending(conn, now=int(time.time())):  # also run on a timer
         continue                            # another worker holds it
     try:
         deliver(due, idempotency_key=due.key)
-    except Exception:
+    except Exception as error:
         ledger.release(conn, due)
-        raise
-    ledger.mark_delivered(conn, due)
+        log_and_alert(due.key, error)       # the next rows still go out
+        continue
+    if not ledger.mark_delivered(conn, due) and ledger.state(conn, due) == ledger.REFUNDED:
+        revoke(due)                         # the refund landed during delivery
 ```
+
+One failing row must not stop the pass: a buyer who blocked the bot fails on every pass, and everyone who paid later waits behind that row. The alert is how a person learns about a row that keeps returning.
+
+`mark_delivered` returns `False` in two cases, so read `state` before acting. `refunded` means the buyer has the Stars back and the goods went out, so revoke them. `delivered` means the lease ran out and another worker finished under the same key, so the grant stands.
 
 Contract of the helper:
 
@@ -79,12 +85,12 @@ Contract of the helper:
 - **Each call commits on its own.** The ledger runs in autocommit, so no call leaves a write lock open. Use `with ledger.transaction(conn):` to join an order insert with `record_payment`.
 - **`claim` is one conditional `UPDATE`.** With parallel webhooks (`max_connections` defaults to 40) `pending` shows the same row to every handler, and only one `claim` returns `True`. Delivering straight from `pending` delivers twice.
 - **The lease replaces a reset on startup.** A startup reset would take claims away from workers still running. A crashed worker's row returns once `lease_until` passes (300 seconds by default). Set the lease longer than the slowest `deliver`.
-- **Internal balance.** Credit and mark in one transaction, then a crash undoes both:
+- **Internal balance.** Credit only when the mark succeeds, inside one transaction: a crash undoes both, and a refund or another worker that got there first leaves the balance untouched:
 
 ```python
 with ledger.transaction(conn):
-    credit_balance(conn, due.user_id, due.amount)
-    ledger.mark_delivered(conn, due)
+    if ledger.mark_delivered(conn, due):
+        credit_balance(conn, due.user_id, due.amount)
 ```
 
 Keep the unique key and the conditional claim in your own schema if you adopt the logic elsewhere. Acknowledge the update only after `record_payment` returns (see `tg-bot-ops`); a dropped `successful_payment` is money taken and nothing delivered.

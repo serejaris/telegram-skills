@@ -228,6 +228,27 @@ class Crediting(FileLedger):
         self.assertEqual(self.conn.execute('SELECT count(*) FROM balance').fetchone(), (0,))
         self.assertEqual(states(self.conn), [(0, ledger.CLAIMED)])
 
+    def test_refund_after_claim_leaves_the_balance_empty(self):
+        self.conn.execute('CREATE TABLE balance (user_id INTEGER, stars INTEGER)')
+        payment = ledger.parse_payment(paid())
+        ledger.record_payment(self.conn, payment)
+        ledger.claim(self.conn, payment, NOW)
+        ledger.record_refund(self.conn, payment.charge_id)
+        with ledger.transaction(self.conn):
+            if ledger.mark_delivered(self.conn, payment):
+                self.conn.execute('INSERT INTO balance VALUES (?, ?)', (payment.user_id, payment.amount))
+        self.assertEqual(self.conn.execute('SELECT count(*) FROM balance').fetchone(), (0,))
+
+    def test_state_tells_a_refund_from_a_finished_delivery(self):
+        payment = ledger.parse_payment(paid())
+        self.assertIsNone(ledger.state(self.conn, payment))
+        ledger.record_payment(self.conn, payment)
+        ledger.claim(self.conn, payment, NOW, lease=60)
+        self.assertTrue(ledger.claim(self.open(), payment, NOW + 60))
+        self.assertTrue(ledger.mark_delivered(self.conn, payment))
+        self.assertFalse(ledger.mark_delivered(self.conn, payment))
+        self.assertEqual(ledger.state(self.conn, payment), ledger.DELIVERED)
+
     def test_refund_blocks_delivery_and_is_idempotent(self):
         payment = ledger.parse_payment(paid())
         ledger.record_payment(self.conn, payment)
@@ -265,6 +286,44 @@ class Crediting(FileLedger):
         self.assertFalse(ledger.record_refund(self.conn, 'sub'))
         ledger.record_payment(self.conn, renewal('sub', 2000))
         self.assertEqual(len(ledger.pending(self.conn, NOW)), 1)
+
+
+class DeliveryPass(FileLedger):
+    def run_pass(self, deliver):
+        errors, revoked = [], []
+        for due in ledger.pending(self.conn, NOW):
+            if not ledger.claim(self.conn, due, NOW):
+                continue
+            try:
+                deliver(due)
+            except Exception as error:
+                ledger.release(self.conn, due)
+                errors.append((due.charge_id, str(error)))
+                continue
+            if not ledger.mark_delivered(self.conn, due):
+                if ledger.state(self.conn, due) == ledger.REFUNDED:
+                    revoked.append(due.charge_id)
+        return errors, revoked
+
+    def test_failing_row_does_not_hold_the_rows_behind_it(self):
+        for charge in ('blocked', 'next', 'last'):
+            ledger.record_payment(self.conn, ledger.parse_payment(paid(charge=charge)))
+        delivered = []
+
+        def deliver(due):
+            if due.charge_id == 'blocked':
+                raise RuntimeError('bot was blocked by the user')
+            delivered.append(due.charge_id)
+
+        errors, _ = self.run_pass(deliver)
+        self.assertEqual(delivered, ['next', 'last'])
+        self.assertEqual(errors, [('blocked', 'bot was blocked by the user')])
+        self.assertEqual([p.charge_id for p in ledger.pending(self.conn, NOW)], ['blocked'])
+
+    def test_refund_during_delivery_revokes_the_grant(self):
+        ledger.record_payment(self.conn, ledger.parse_payment(paid()))
+        errors, revoked = self.run_pass(lambda due: ledger.record_refund(self.conn, due.charge_id))
+        self.assertEqual((errors, revoked), ([], ['stx-1']))
 
 
 class ParallelWebhooks(FileLedger):

@@ -145,9 +145,9 @@ def _settle_estimate(conn, payment):
         'WHERE charge_id = ? AND estimated_period > 0',
         (payment.charge_id,),
     ).fetchall()
-    for estimated, period, state in rows:
+    for estimated, period, row_state in rows:
         if abs(estimated - payment.subscription_expires_at) <= period // 2:
-            if state == CLAIMED:
+            if row_state == CLAIMED:
                 return True
             conn.execute(
                 'UPDATE star_payments SET subscription_expires_at = ?, estimated_period = 0 '
@@ -244,6 +244,14 @@ def mark_delivered(conn, payment):
     return cursor.rowcount == 1
 
 
+def state(conn, payment):
+    row = conn.execute(
+        'SELECT state FROM star_payments WHERE charge_id = ? AND subscription_expires_at = ?',
+        payment.key,
+    ).fetchone()
+    return row[0] if row else None
+
+
 def record_refund(conn, charge_id):
     with transaction(conn):
         rows = conn.execute(
@@ -255,8 +263,8 @@ def record_refund(conn, charge_id):
             cursor = conn.execute(
                 'INSERT OR IGNORE INTO star_refunds_unmatched (charge_id) VALUES (?)', (charge_id,))
             return cursor.rowcount == 1
-        for expires_at, state in rows:
-            if state != REFUNDED:
+        for expires_at, row_state in rows:
+            if row_state != REFUNDED:
                 conn.execute(
                     'UPDATE star_payments SET state = ?, lease_until = 0 '
                     'WHERE charge_id = ? AND subscription_expires_at = ?',
