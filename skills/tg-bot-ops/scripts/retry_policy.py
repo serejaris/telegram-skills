@@ -1,10 +1,6 @@
-"""Decide what to do with a Bot API response. Standard library only, no network.
-
-send() takes a factory because a multipart body is single-use: every attempt
-must rebuild it, reopening the file. The transport is injected by the consumer.
-"""
 from dataclasses import dataclass
 import json
+import time
 
 DONE = 'done'
 RETRY = 'retry'
@@ -13,7 +9,7 @@ FAIL = 'fail'
 UNKNOWN = 'unknown'
 
 DEFAULT_WAIT = 1
-MAX_WAIT = 3600
+MAX_INLINE_WAIT = 60
 
 
 @dataclass(frozen=True)
@@ -30,10 +26,6 @@ def _is_int(value):
 
 
 def classify(status, body):
-    """Map an HTTP status and a raw response body to a Decision.
-
-    UNKNOWN means the request may have taken effect: report it, never resend it blindly.
-    """
     if not _is_int(status):
         return Decision(UNKNOWN, reason='no HTTP status')
     try:
@@ -50,7 +42,7 @@ def classify(status, body):
     if status == 429:
         wait = params.get('retry_after')
         wait = wait if _is_int(wait) and wait > 0 else DEFAULT_WAIT
-        return Decision(RETRY, wait=min(wait, MAX_WAIT), reason=reason)
+        return Decision(RETRY, wait=wait, reason=reason)
     migrate_to = params.get('migrate_to_chat_id')
     if _is_int(migrate_to) and migrate_to != 0:
         return Decision(MIGRATE, chat_id=migrate_to, reason=reason)
@@ -60,37 +52,38 @@ def classify(status, body):
 
 
 class FloodGate:
-    """One pause per scope. Only the clock ends a pause, a finished request cannot."""
-
-    def __init__(self):
+    def __init__(self, clock=time.monotonic, sleep=time.sleep):
+        self._clock = clock
+        self._sleep = sleep
         self._until = {}
 
-    def hold(self, scope, now, wait):
-        self._until[scope] = max(self._until.get(scope, 0), now + wait)
+    def hold(self, scope, wait):
+        self._until[scope] = max(self._until.get(scope, 0), self._clock() + wait)
 
-    def delay(self, scope, now):
-        return max(0, self._until.get(scope, 0) - now)
+    def delay(self, scope):
+        return max(0, self._until.get(scope, 0) - self._clock())
+
+    def sleep(self, seconds):
+        self._sleep(seconds)
 
 
-def send(make_request, transport, gate, scope, clock, sleep, max_attempts=3):
-    """Run one Bot API call. Retries only on 429, with a fresh request each attempt.
-
-    make_request() builds the request; transport(request) returns (status, body)
-    and raises on a timeout or a dropped connection, which yields UNKNOWN.
-    """
+def send(make_request, transport, gate, scope, max_attempts=3, max_inline_wait=MAX_INLINE_WAIT):
     if not _is_int(max_attempts) or max_attempts < 1:
         raise ValueError('max_attempts must be a positive integer')
     decision = Decision(UNKNOWN, reason='not attempted')
     for _ in range(max_attempts):
-        pause = gate.delay(scope, clock())
+        pause = gate.delay(scope)
+        if pause > max_inline_wait:
+            return Decision(FAIL, wait=pause, reason=f'pause too long: {decision.reason}')
         if pause:
-            sleep(pause)
+            gate.sleep(pause)
+        request = make_request()
         try:
-            status, body = transport(make_request())
-        except (OSError, TimeoutError) as error:
+            status, body = transport(request)
+        except Exception as error:
             return Decision(UNKNOWN, reason=f'transport: {error}')
         decision = classify(status, body)
         if decision.action != RETRY:
             return decision
-        gate.hold(scope, clock(), decision.wait)
+        gate.hold(scope, decision.wait)
     return Decision(FAIL, wait=decision.wait, reason=f'still limited: {decision.reason}')

@@ -29,7 +29,7 @@ Webhook setup:
 
 1. `setWebhook` with `secret_token`: 1-256 characters of `A-Za-z0-9_-`.
 2. Reject any request whose `X-Telegram-Bot-Api-Secret-Token` header differs, using a constant-time compare.
-3. Store the update durably, return 2xx, and process it afterwards.
+3. Store the update durably, return 2xx, and process it afterwards. Answer `pre_checkout_query` right in the handler, ahead of any queue: it expires in 10 seconds (`tg-stars-payments`).
 
 ## allowed_updates
 
@@ -45,7 +45,7 @@ On by default. In groups the bot sees commands meant for it, replies to it and m
 
 ## 429 and retries
 
-Documented [limits](https://core.telegram.org/bots/faq#my-bot-is-hitting-limits-how-do-i-avoid-this): about 1 message per second per chat (short bursts allowed), 20 per minute in a group, about 30 per second for bulk. Treat the numbers as approximate and let `retry_after` rule. Limits are not lower in the [test environment](https://core.telegram.org/bots/features#dedicated-test-environment), and a [maintainer says](https://github.com/tdlib/telegram-bot-api/issues/677) the local server doesn't change them (2024-12-13). `answerCallbackQuery` has no limit, editing is under the per-chat limit ([maintainer, 2024-10-09](https://github.com/tdlib/telegram-bot-api/issues/648)).
+Documented [limits](https://core.telegram.org/bots/faq#my-bot-is-hitting-limits-how-do-i-avoid-this): about 1 message per second per chat (short bursts allowed), 20 per minute in a group, about 30 per second for bulk. Treat the numbers as approximate and let `retry_after` rule. Flood limits are not raised in the [test environment](https://core.telegram.org/bots/features#dedicated-test-environment) and may at times be stricter, and a [maintainer says](https://github.com/tdlib/telegram-bot-api/issues/677) the local server doesn't change them (2024-12-13). `answerCallbackQuery` has no limit, editing is under the per-chat limit ([maintainer, 2024-10-09](https://github.com/tdlib/telegram-bot-api/issues/648)).
 
 | Response | Meaning | Action |
 |---|---|---|
@@ -57,17 +57,21 @@ Documented [limits](https://core.telegram.org/bots/faq#my-bot-is-hitting-limits-
 ```python
 import retry_policy as rp
 
-gate = rp.FloodGate()                       # shared by all workers of the bot
+gate = rp.FloodGate()                       # one per process
 
 def make_request():                         # called on every attempt
     return build_multipart(url, fields, open(path, 'rb'))
 
-decision = rp.send(make_request, transport, gate, f'chat:{chat_id}', time.monotonic, time.sleep)
+decision = rp.send(make_request, transport, gate, f'chat:{chat_id}')
 if decision.action == rp.UNKNOWN:
     park_for_reconcile(decision.reason)     # never treat this as a failed send
 ```
 
-`transport(request)` is yours: it returns `(status, body)` and raises on a timeout, and it should close the file.
+`transport(request)` is yours: it returns `(status, body)`, it should close the file, and any exception it raises counts as **unknown**, because the bytes may have left. `make_request` runs outside that guard: when it raises, for example on a missing file, nothing was sent and the exception reaches you.
+
+`FloodGate` lives in the memory of one process. Several workers need a shared store for pauses, for example Redis with a key per scope and a TTL of `retry_after`.
+
+The pause length belongs to the server: `Decision.wait` carries `retry_after` as received. `send` sleeps up to `max_inline_wait` (60 seconds by default). A longer pause comes back as `FAIL` with the real `wait`, so a handler can reschedule the send and free its worker.
 
 Two failure modes this shape avoids, both reported in libraries in 2026:
 
@@ -89,7 +93,7 @@ Scope the gate by chat for sends, and by bot for a broadcast. For bulk, a queue 
 
 - An update counts as confirmed the moment `getUpdates` is called with a higher `offset`. Recalculate `offset` after every response and save the update first, so a crash replays it.
 - **Shutdown.** Stop fetching, wait for running handlers, then exit. aiogram doesn't wait for handlers whose updates are already confirmed, so a running payment handler dies ([#1955](https://github.com/aiogram/aiogram/issues/1955), open on 2026-10-30).
-- Duplicates happen: handlers are idempotent, by `update_id` for transport repeats and by the domain key for money (`tg-stars-payments`). After a week without updates the next `update_id` is [random](https://core.telegram.org/bots/api/types/update), so never assume it only grows across a gap.
+- Duplicates happen: handlers are idempotent, by `update_id` for transport repeats and by the domain key for money (`tg-stars-payments`). After a week without updates the next `update_id` is [random](https://core.telegram.org/bots/api#update), so never assume it only grows across a gap.
 - Webhook versus polling reliability: one practitioner lost messages on webhooks and fixed it with polling ([Reddit](https://www.reddit.com/r/TelegramBots/comments/1rrlzlb/built_a_monetized_ai_companion_bot_on_telegram/), self-report). No reproducible report exists either way; a durable inbox beats the choice of transport.
 
 ## Poison updates
@@ -114,7 +118,7 @@ for update in updates:
     offset = update['update_id'] + 1
 ```
 
-A `successful_payment` in the dead-letter store still owes the buyer: reconcile it against `getStarTransactions`.
+A `successful_payment` in the dead-letter store still owes the buyer: replay it through the ledger, or follow the recovery rules in `tg-stars-payments`, because `getStarTransactions` lacks `subscription_expiration_date`.
 
 ## Domains
 
@@ -123,10 +127,10 @@ On 2026-07-13 at 19:24 UTC the `t.me` domain went down for about a day after an 
 The fallback isn't universal. Reports from that day:
 
 - Posts and bot links: `telegram.me` worked; profile images saved on `t.me` broke, and the swap fixed them ([HN](https://news.ycombinator.com/item?id=48898291)).
-- Invoices: `createInvoiceLink` returned `telegram.me` and the invoice did not open until replaced with `t.me` ([PTB #5296](https://github.com/python-telegram-bot/python-telegram-bot/issues/5296)).
+- Invoices: `createInvoiceLink` returned `telegram.me`, and the invoice did not open until the host was replaced with `t.me` ([PTB #5296](https://github.com/python-telegram-bot/python-telegram-bot/issues/5296)).
 - Mini Apps: tma.js `openTelegramLink` rejected `telegram.me` and `telegram.dog` ([#879](https://github.com/Telegram-Mini-Apps/tma.js/issues/879), closed 2026-07-14).
 
-So keep the host in one config value, avoid `t.me` allowlists in validators, store usernames instead of full links, and pass API-returned URLs through verbatim. Test any fallback for invoices and Mini App links before relying on it.
+So keep the host in one config value, avoid `t.me` allowlists in validators and store usernames instead of full links. A URL returned by the API can fail too: open an invoice on a client to check it, and test any fallback for invoices and Mini App links before relying on it.
 
 ## Local Bot API server
 
@@ -143,7 +147,7 @@ Done when `getMe` answers on the new URL and updates arrive there.
 ## Sources
 
 - https://core.telegram.org/bots/api#getting-updates
-- https://core.telegram.org/bots/api/methods/setwebhook
-- https://core.telegram.org/bots/api/methods/getupdates
+- https://core.telegram.org/bots/api#setwebhook
+- https://core.telegram.org/bots/api#getupdates
 - https://core.telegram.org/bots/faq
 - https://core.telegram.org/bots/webhooks

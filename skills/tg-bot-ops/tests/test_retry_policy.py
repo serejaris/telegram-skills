@@ -49,9 +49,9 @@ class Classify(unittest.TestCase):
             self.assertEqual((decision.action, decision.wait), (policy.RETRY, policy.DEFAULT_WAIT))
         self.assertEqual(policy.classify(429, body(ok=False, parameters='x')).wait, policy.DEFAULT_WAIT)
 
-    def test_huge_retry_after_is_capped(self):
-        decision = policy.classify(429, body(ok=False, parameters={'retry_after': 10 ** 9}))
-        self.assertEqual(decision.wait, policy.MAX_WAIT)
+    def test_huge_retry_after_is_kept(self):
+        decision = policy.classify(429, body(ok=False, parameters={'retry_after': 7200}))
+        self.assertEqual((decision.action, decision.wait), (policy.RETRY, 7200))
 
     def test_group_migration(self):
         decision = policy.classify(400, body(ok=False, parameters={'migrate_to_chat_id': -1001234567890}))
@@ -71,17 +71,22 @@ class Classify(unittest.TestCase):
 
 class Gate(unittest.TestCase):
     def test_finished_request_does_not_lift_the_pause(self):
-        gate = policy.FloodGate()
-        gate.hold('chat:1', now=100, wait=10)
-        self.assertEqual(gate.delay('chat:1', now=103), 7)
-        self.assertEqual(gate.delay('chat:2', now=103), 0)
-        self.assertEqual(gate.delay('chat:1', now=111), 0)
+        clock = Clock()
+        gate = policy.FloodGate(clock, clock.sleep)
+        gate.hold('chat:1', 10)
+        clock.now = 103
+        self.assertEqual(gate.delay('chat:1'), 7)
+        self.assertEqual(gate.delay('chat:2'), 0)
+        clock.now = 111
+        self.assertEqual(gate.delay('chat:1'), 0)
 
     def test_shorter_wait_does_not_shrink_the_pause(self):
-        gate = policy.FloodGate()
-        gate.hold('bot', now=100, wait=10)
-        gate.hold('bot', now=101, wait=1)
-        self.assertEqual(gate.delay('bot', now=101), 9)
+        clock = Clock()
+        gate = policy.FloodGate(clock, clock.sleep)
+        gate.hold('bot', 10)
+        clock.now = 101
+        gate.hold('bot', 1)
+        self.assertEqual(gate.delay('bot'), 9)
 
 
 class Send(unittest.TestCase):
@@ -97,8 +102,8 @@ class Send(unittest.TestCase):
                 raise item
             return item
 
-        decision = policy.send(make_request or (lambda: 'request'), transport, policy.FloodGate(),
-                               'chat:1', clock, clock.sleep, **kwargs)
+        decision = policy.send(make_request or (lambda: 'request'), transport,
+                               policy.FloodGate(clock, clock.sleep), 'chat:1', **kwargs)
         return decision, seen, clock
 
     def test_multipart_is_rebuilt_for_every_attempt(self):
@@ -115,8 +120,8 @@ class Send(unittest.TestCase):
             return LIMITED if len(built) == 1 else SENT
 
         clock = Clock()
-        decision = policy.send(make_request, consuming_transport, policy.FloodGate(),
-                               'chat:1', clock, clock.sleep)
+        decision = policy.send(make_request, consuming_transport,
+                               policy.FloodGate(clock, clock.sleep), 'chat:1')
         self.assertEqual(decision.action, policy.DONE)
         self.assertEqual(len(built), 2)
         self.assertEqual(clock.slept, [7])
@@ -130,6 +135,26 @@ class Send(unittest.TestCase):
         decision, seen, _ = self.run_send([(502, 'bad gateway'), SENT])
         self.assertEqual(decision.action, policy.UNKNOWN)
         self.assertEqual(len(seen), 1)
+
+    def test_any_transport_exception_is_unknown(self):
+        for error in (ValueError('library timeout'), KeyError('incomplete read')):
+            decision, seen, _ = self.run_send([error, SENT])
+            self.assertEqual(decision.action, policy.UNKNOWN)
+            self.assertEqual(len(seen), 1)
+
+    def test_failed_request_build_is_raised_and_sends_nothing(self):
+        def make_request():
+            raise FileNotFoundError('photo.jpg')
+
+        with self.assertRaises(FileNotFoundError):
+            self.run_send([SENT], make_request=make_request)
+
+    def test_long_pause_returns_to_the_caller_with_the_server_wait(self):
+        limited = (429, body(ok=False, parameters={'retry_after': 7200}))
+        decision, seen, clock = self.run_send([limited, SENT])
+        self.assertEqual((decision.action, decision.wait), (policy.FAIL, 7200))
+        self.assertEqual(len(seen), 1)
+        self.assertEqual(clock.slept, [])
 
     def test_gives_up_after_max_attempts(self):
         decision, seen, clock = self.run_send([LIMITED, LIMITED], max_attempts=2)
