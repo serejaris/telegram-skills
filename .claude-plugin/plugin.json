@@ -1,6 +1,6 @@
 {
   "name": "telegram-skills",
-  "description": "Telegram Bot API 10.3 skills: Rich Messages with structured documents, block JSON, uploaded media, galleries and maps, streaming AI replies, polls with description and media, Mini App launch, initData auth and UI",
+  "description": "Telegram Bot API 10.3 skills: rich and classic messages, block JSON, uploaded media, streaming AI replies, polls, Mini App launch, initData auth and UI, Stars payments, bot operations, and a map of what a bot can't do",
   "version": "1.5.0",
   "author": {
     "name": "serejaris"
@@ -8,5 +8,5 @@
   "homepage": "https://github.com/serejaris/telegram-skills",
   "repository": "https://github.com/serejaris/telegram-skills",
   "license": "MIT",
-  "keywords": ["telegram", "bot-api", "rich-messages", "streaming", "digest", "polls", "mini-apps", "webapp", "initdata"]
+  "keywords": ["telegram", "bot-api", "rich-messages", "streaming", "digest", "polls", "mini-apps", "webapp", "initdata", "stars", "payments", "webhooks"]
 }
