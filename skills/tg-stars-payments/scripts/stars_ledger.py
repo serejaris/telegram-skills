@@ -141,12 +141,14 @@ def _settle_estimate(conn, payment):
     if not payment.subscription_expires_at:
         return False
     rows = conn.execute(
-        'SELECT subscription_expires_at, estimated_period FROM star_payments '
+        'SELECT subscription_expires_at, estimated_period, state FROM star_payments '
         'WHERE charge_id = ? AND estimated_period > 0',
         (payment.charge_id,),
     ).fetchall()
-    for estimated, period in rows:
+    for estimated, period, state in rows:
         if abs(estimated - payment.subscription_expires_at) <= period // 2:
+            if state == CLAIMED:
+                return True
             conn.execute(
                 'UPDATE star_payments SET subscription_expires_at = ?, estimated_period = 0 '
                 'WHERE charge_id = ? AND subscription_expires_at = ?',

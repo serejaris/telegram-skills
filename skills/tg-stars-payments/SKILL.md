@@ -98,7 +98,7 @@ Use it after a lost update, after `drop_pending_updates`, and for dead-lettered 
 1. Search by `charge_id` first. One-time payments match on the key.
 2. For a subscription, a row with the same `charge_id` is the same period when `subscription_expires_at - subscription_period` falls within half a period of `date`. Periods of one subscription lie a full period apart.
 3. With no match, store a row with the estimate `date + subscription_period` and remember the period.
-4. A late `successful_payment` within half a period of that estimate replaces it with the true expiry and returns `False`, so delivery doesn't start again.
+4. A late `successful_payment` within half a period of that estimate returns `False`, so delivery doesn't start again. It replaces the estimate with the true expiry, unless the row is `claimed`: the running delivery holds that key as its idempotency key, so the estimate stays.
 5. An outgoing transaction to a user carries the id of the refunded payment and goes to `record_refund`.
 
 A refund for a charge the ledger hasn't seen yet is stored and applied when the payment arrives, by update or by recovery, so that row never reaches delivery. Until the estimate is replaced, grant access by `subscription_expires_at` knowing it can be off by the gap between the renewal and the old expiry.

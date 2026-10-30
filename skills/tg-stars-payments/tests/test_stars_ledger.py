@@ -390,6 +390,16 @@ class Reconciling(FileLedger):
         self.assertEqual(ledger.pending(self.conn, NOW), [])
         self.assertEqual(states(self.conn), [(true_expiry, ledger.DELIVERED)])
 
+    def test_late_update_during_delivery_keeps_the_claimed_key(self):
+        renewed_at = START + 3600
+        ledger.reconcile_transaction(self.conn, incoming('sub', renewed_at, PERIOD))
+        due = ledger.pending(self.conn, NOW)[0]
+        self.assertTrue(ledger.claim(self.conn, due, NOW))
+        self.assertFalse(ledger.record_payment(self.conn, renewal(expires_at=START + PERIOD)))
+        self.assertTrue(ledger.mark_delivered(self.conn, due))
+        self.assertEqual(ledger.pending(self.conn, NOW + ledger.DEFAULT_LEASE), [])
+        self.assertEqual(states(self.conn), [(due.subscription_expires_at, ledger.DELIVERED)])
+
     def test_next_period_on_the_same_charge_stays_a_new_payment(self):
         ledger.record_payment(self.conn, renewal(expires_at=START + PERIOD))
         next_date = START + PERIOD
