@@ -61,6 +61,7 @@ Then ask your agent — e.g. *"send this report to my Telegram channel as a rich
 | [`tg-rich-streaming`](skills/tg-rich-streaming/) | Stream LLM output into a chat: draft animation, thinking block, mandatory finalization |
 | [`tg-polls`](skills/tg-polls/) | Polls and quizzes from a bot or a user account: text + poll in one message via description, media, 12 options, all poll settings and limits |
 | [`tg-rich-digest`](skills/tg-rich-digest/) | Digest and channel-article patterns: flat layout, preview + collapsed full version, media as evidence, preflight gate |
+| [`tg-stars-payments`](skills/tg-stars-payments/) | Sell digital goods for Stars from a bot or Mini App: invoices, pre-checkout, exactly-once crediting by `telegram_payment_charge_id`, refunds, subscriptions, paid media, dated payout figures |
 
 ## Reference
 
