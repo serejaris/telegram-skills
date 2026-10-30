@@ -1,6 +1,6 @@
 # telegram-skills
 
-**Agent Skills for Telegram Bot API 10.3: Rich Messages and Mini Apps** — works with Claude Code, Codex CLI, Cursor, and any agent supporting the [Agent Skills standard (agentskills.io)](https://agentskills.io). Teach your AI agent to send structured documents, tables, galleries, maps, uploaded media, and streaming AI replies from any Telegram bot, and to launch, secure and lay out a Mini App.
+**Agent Skills for Telegram Bot API 10.3: messages, Mini Apps, Stars payments and bot operations** — works with Claude Code, Codex CLI, Cursor, and any agent supporting the [Agent Skills standard (agentskills.io)](https://agentskills.io). Teach your AI agent to send structured documents, tables, galleries, maps, uploaded media, and streaming AI replies from any Telegram bot, and to launch, secure and lay out a Mini App.
 
 Bot API 10.1 (June 11, 2026) introduced [Rich Messages](https://core.telegram.org/bots/api#rich-message-formatting-options): bots can send document-grade structured messages and stream AI-generated replies with a native "thinking" block. Bot API 10.2 (July 14, 2026) added outgoing block JSON plus explicit media bindings, including Telegram `file_id`, HTTP URLs, and multipart uploads.
 
