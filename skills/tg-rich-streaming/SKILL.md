@@ -9,7 +9,7 @@ license: MIT
 Stream AI-generated text into a Telegram private chat with native draft animation and a "thinking" indicator — the same UX as ChatGPT or Claude, directly inside the bot.
 
 Sending requires network access to `api.telegram.org` and `TELEGRAM_BOT_TOKEN`.
-Checked against the official docs on 2026-10-30: Bot API 10.3 (latest, August 24, 2026).
+Checked against the official docs on 2026-10-30: Bot API 10.3 (latest, August 24, 2026). Nothing here was run against a live bot.
 
 | Method | Content | Since | Finalize with |
 |---|---|---|---|
@@ -146,10 +146,14 @@ POST /sendMessageDraft
 - **Dead topics.** `createForumTopic` can succeed while the new topic answers
   "message thread not found" to every bot write and `TOPIC_ID_INVALID` to `deleteForumTopic`:
   [tdlib #905](https://github.com/tdlib/telegram-bot-api/issues/905) (practitioner report, filed
-  2026-09-29, open on 2026-10-30, 5 of 11 topics in that report). Handle the failed first write
+  2026-09-29, open on 2026-10-30, three episodes across several hundred topics). Handle the failed first write
   and create a replacement topic.
 
-Streaming doesn't need topics: `sendMessageDraft` has been open to all bots since 9.5.
+Whether streaming needs topics, the sources disagree. Terms §6.2.6 still ties "the streaming of
+message drafts" to topics in private chats and the 15% fee; the
+[Bot API 9.5 changelog](https://core.telegram.org/bots/api-changelog) allowed all bots to use
+`sendMessageDraft`. Follow the changelog for the method, and read §6.2.6 before enabling topics on
+a selling bot. Neither was tested live.
 
 ---
 

@@ -6,7 +6,7 @@ license: MIT
 
 # tg-classic-messages
 
-Checked against the official docs on 2026-10-30: Bot API 10.3 (August 24, 2026). Pre-send rules below come from [Formatting options](https://core.telegram.org/bots/api/formatting), the method pages and [Sending files](https://core.telegram.org/bots/api#sending-files).
+Checked against the official docs on 2026-10-30: Bot API 10.3 (August 24, 2026). Pre-send rules below come from [Formatting options](https://core.telegram.org/bots/api#formatting-options), the method pages and [Sending files](https://core.telegram.org/bots/api#sending-files). Nothing here was run against a live bot.
 
 ## Classic or rich
 
@@ -55,7 +55,7 @@ Pick one per message: `parse_mode` or an explicit `entities` list. Entities need
 
 Nesting: entities overlap only by full containment. `bold`, `italic`, `underline`, `strikethrough` and `spoiler` nest freely, except with `pre` and `code`. Quotes can't nest. In MarkdownV2 two adjacent quotes need an empty bold entity (`**`) between them.
 
-- **Mentions.** `tg://user?id=` works only inside an inline link or a keyboard button, never as plain text.
+- **Mentions.** `tg://user?id=` works only inside an inline link or an inline keyboard button, never as plain text.
 - **Quotes.** `<blockquote>`, `<blockquote expandable>`.
 - **Time in the reader's timezone** (Bot API 9.5): `<tg-time unix="1647531900" format="wDT">22:45 tomorrow</tg-time>`, format per `r|w?[dD]?[tT]?`, and `r` stands alone. An empty format shows the text as written.
 - **Custom emoji:** `<tg-emoji emoji-id="…">👍</tg-emoji>`, with a real emoji inside as fallback. Allowed for bots with extra usernames bought on Fragment, or for messages sent directly to private chats, groups and supergroups when the bot's owner has Premium. Channels are not on that second list: without Fragment usernames, plan the post without custom emoji. Not tested live for this skill.
@@ -74,7 +74,7 @@ Nesting: entities overlap only by full containment. `bold`, `italic`, `underline
 
 - Prefer `file_id` for anything already sent; keep it per bot.
 - `show_caption_above_media`, `has_spoiler` sit on the media method or `InputMedia*`.
-- A send can return `message_id` 0: the server may [schedule a heavy video](https://core.telegram.org/bots/api/types/message) for a big chat instead of sending at once. Treat 0 as unknown, never as a stored id.
+- A send can return `message_id` 0: the server may [schedule a heavy video](https://core.telegram.org/bots/api#message) for a big chat instead of sending at once. Treat 0 as unknown, never as a stored id.
 - Rebuild the multipart body on every retry, see `tg-bot-ops`.
 
 ## Protecting, copying, deleting
@@ -96,8 +96,8 @@ Editing: `editMessageText`, `editMessageCaption`, `editMessageMedia`, `editMessa
 
 ## Sources
 
-- https://core.telegram.org/bots/api/formatting
-- https://core.telegram.org/bots/api/methods/sendmessage
-- https://core.telegram.org/bots/api/methods/sendmediagroup
+- https://core.telegram.org/bots/api#formatting-options
+- https://core.telegram.org/bots/api#sendmessage
+- https://core.telegram.org/bots/api#sendmediagroup
 - https://core.telegram.org/bots/api#sending-files
-- https://core.telegram.org/bots/api/methods/deletemessage
+- https://core.telegram.org/bots/api#deletemessage

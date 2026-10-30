@@ -18,15 +18,15 @@ A map with no code. Absence from Bot API was established from the [method list](
 
 | Capability | Bot API | Client or MTProto | Since | Checked | Source |
 |---|---|---|---|---|---|
-| Scheduled post | no; `SCHEDULE_BOT_NOT_ALLOWED`. Run your own timer | `schedule_date` on `messages.sendMessage`, `messages.sendMedia` | long-standing | 2026-10-30 | https://core.telegram.org/api/scheduled-messages |
-| Repeating scheduled post | no | `schedule_repeat_period`, Premium, one message, 1 to 365 days | 2025-11-19 | 2026-10-30 | https://core.telegram.org/api/scheduled-messages |
+| Scheduled post | no; `SCHEDULE_BOT_NOT_ALLOWED`. Run your own timer | `schedule_date` on `messages.sendMessage`, `messages.sendMedia` | long-standing | 2026-10-30 | https://core.telegram.org/method/messages.sendMessage |
+| Repeating scheduled post | no | `schedule_repeat_period`, Premium, one message, seven fixed intervals from 1 day to 365 days | 2025-11-19 | 2026-10-30 | https://core.telegram.org/api/scheduled-messages |
 | Channel stats | no; `Message` has no view or forward counter | `stats.getBroadcastStats`, `stats.getMessageStats`; channels of a certain size | long-standing | 2026-10-30 | https://core.telegram.org/api/stats |
 | Poll stats | no | `stats.getPollStats`; the client shows them after 100 votes | 2026-05-07 | 2026-10-30 | https://telegram.org/blog/ai-bot-revolution-11-new-features |
-| Votes in polls the bot didn't send | no; `poll_answer` only for its own polls | `messages.getPollVotes` | long-standing | 2026-10-30 | https://core.telegram.org/bots/api/types/update |
-| Channel stories | no; `postStory` is for managed business accounts only | `stories.sendStory`, right `post_stories`, enough boosts | long-standing | 2026-10-30 | https://core.telegram.org/bots/api/methods/poststory |
+| Votes in polls the bot didn't send | no; `poll_answer` only for its own polls | `messages.getPollVotes` | long-standing | 2026-10-30 | https://core.telegram.org/bots/api#update |
+| Channel stories | no; `postStory` is for managed business accounts only | `stories.sendStory`, right `post_stories`, enough boosts | long-standing | 2026-10-30 | https://core.telegram.org/bots/api#poststory |
 | Live Stories | no | client, RTMP key, boosts on a channel | 2025-11-19 | 2026-10-30 | https://telegram.org/blog/live-stories-gift-auctions |
 | Available reactions of a channel | read only, `ChatFullInfo.available_reactions` | `messages.setChatAvailableReactions` | long-standing | 2026-10-30 | https://core.telegram.org/api/reactions |
-| Paid reactions | no; "Bots can't use paid reactions" | `messages.sendPaidReaction` | long-standing | 2026-10-30 | https://core.telegram.org/bots/api/methods/setmessagereaction |
+| Paid reactions | no; "Bots can't use paid reactions" | `messages.sendPaidReaction` | long-standing | 2026-10-30 | https://core.telegram.org/bots/api#setmessagereaction |
 | Linking a discussion group | read only, `linked_chat_id` | `channels.setDiscussionGroup` | long-standing | 2026-10-30 | https://core.telegram.org/api/discussion |
 | Channel direct messages | answers with `direct_messages_topic_id`, right `can_manage_direct_messages`; can't enable them | `channels.updatePaidMessagesPrice` | Bot API 9.2, 2025-08-15 | 2026-10-30 | https://core.telegram.org/api/monoforum |
 | Boosts | read only, `getUserChatBoosts`, `chat_boost` | `premium.applyBoost`, Premium users | long-standing | 2026-10-30 | https://core.telegram.org/api/boost |
@@ -34,7 +34,7 @@ A map with no code. Absence from Bot API was established from the [method list](
 | Channel auto-translation | no | `channels.toggleAutotranslation`, boost level | long-standing | 2026-10-30 | https://core.telegram.org/api/translation |
 | Chat folders | no | `messages.updateDialogFilter`, `chatlists.*` | long-standing | 2026-10-30 | https://core.telegram.org/api/folders |
 | Protected content for a whole chat | no; `protect_content` per message | `messages.toggleNoForwards`, owner | long-standing | 2026-10-30 | https://core.telegram.org/api/content-protection |
-| Welcome messages | right `can_send_welcome_messages` only, no method to set one | client, chat profile, Edit | 2026-08-25 | 2026-10-30 | https://telegram.org/blog/welcome-messages-buttons-TG-13 |
+| Welcome messages | right `can_send_welcome_messages`, which the API describes as letting a bot send them directly; no method found to set or send one | client, chat profile, Edit | 2026-08-25 | 2026-10-30 | https://telegram.org/blog/welcome-messages-buttons-TG-13 |
 | Communities | read only, `Community`, service messages; can't create | client | 2026-07-14 | 2026-10-30 | https://core.telegram.org/bots/api-changelog#july-14-2026 |
 | Rich text editor for people | bots send rich messages to everyone | client editor, Premium | 2026-07-14 | 2026-10-30 | https://telegram.org/blog/communities-editor-invisible-messages |
 | AI text editor | no | `messages.composeMessageWithAI`, client | 2026-03-31 | 2026-10-30 | https://core.telegram.org/api/ai |
@@ -47,10 +47,10 @@ A map with no code. Absence from Bot API was established from the [method list](
 |---|---|---|---|---|---|
 | Caption length | 1024 | 1024, Premium 4096 (`caption_length_limit_*`, example config) | long-standing | 2026-10-30 | https://core.telegram.org/api/config |
 | File upload | 50 MB, local server 2000 MB | 2 GB, Premium 4 GB | long-standing | 2026-10-30 | https://telegram.org/faq |
-| Message effects | private chats only | client | long-standing | 2026-10-30 | https://core.telegram.org/bots/api/methods/sendmessage |
-| Custom emoji in channel posts | only with Fragment usernames; the Premium-owner route covers private chats and groups | Premium | Bot API 9.4, 2026-02-09 | 2026-10-30 | https://core.telegram.org/bots/api/formatting |
-| Message drafts | private chats only, no streaming into a channel | client | Bot API 9.3, 2025-12-31 | 2026-10-30 | https://core.telegram.org/bots/api/methods/sendmessagedraft |
-| Reaction count per message | one reaction | 1, Premium 3 (example config) | long-standing | 2026-10-30 | https://core.telegram.org/bots/api/methods/setmessagereaction |
+| Message effects | private chats only | client | long-standing | 2026-10-30 | https://core.telegram.org/bots/api#sendmessage |
+| Custom emoji in channel posts | only with Fragment usernames; the Premium-owner route covers private chats and groups | Premium | Bot API 9.4, 2026-02-09 | 2026-10-30 | https://core.telegram.org/bots/api#formatting-options |
+| Message drafts | private chats only, no streaming into a channel | client | Bot API 9.3, 2025-12-31 | 2026-10-30 | https://core.telegram.org/bots/api#sendmessagedraft |
+| Reaction count per message | one reaction | 1, Premium 3 (example config) | long-standing | 2026-10-30 | https://core.telegram.org/bots/api#setmessagereaction |
 
 ## Do not promise from a bot
 

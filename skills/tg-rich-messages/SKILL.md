@@ -8,7 +8,7 @@ license: MIT
 
 Sending requires network access to `api.telegram.org` and a Telegram bot token.
 
-Checked against the official docs on 2026-10-30: Bot API 10.3 (latest, August 24, 2026).
+Checked against the official docs on 2026-10-30: Bot API 10.3 (latest, August 24, 2026). Nothing here was run against a live bot.
 
 ## Overview
 

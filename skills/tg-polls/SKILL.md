@@ -6,7 +6,7 @@ license: MIT
 
 # tg-polls
 
-Checked against the official docs on 2026-10-30: Bot API 10.3 (latest, August 24, 2026), MTProto layer 225+ (`poll`, `inputMediaPoll`), Telegram blog post of 2026-03-31 "AI Editor, Mighty Polls…".
+Checked against the official docs on 2026-10-30: Bot API 10.3 (latest, August 24, 2026), MTProto layer 225+ (`poll`, `inputMediaPoll`), Telegram blog post of 2026-03-31 "AI Editor, Mighty Polls…". Nothing here was run against a live bot.
 
 ## One message: text + poll
 
