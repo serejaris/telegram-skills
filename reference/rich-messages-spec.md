@@ -1,7 +1,8 @@
-# Telegram Bot API 10.3 — Rich Message Formatting: Canonical Reference
+# Telegram Bot API 10.3: Rich Message Formatting Reference
 
-**API Version:** 10.3
-**Release Date:** August 24, 2026
+**API version:** 10.3
+**Release date:** August 24, 2026
+**Checked against the official pages on:** October 30, 2026. Bot API 10.3 was still the latest version on that date.
 **Source:** https://core.telegram.org/bots/api
 
 ---
@@ -24,52 +25,114 @@ Direct block text is literal RichText, not HTML markup. Dynamic strings should r
 
 ---
 
-## Методы
+## Limits
+
+Official list: [Rich Message Limits](https://core.telegram.org/bots/api#rich-message-limits).
+
+| Limit | Value |
+|---|---|
+| UTF-8 characters in the rich message text, including custom emoji alternative text and formula source | **32,768** |
+| Blocks, including nested blocks, list items, ordered list items, table rows, quotation blocks and details blocks | **500** |
+| Levels of nested formatting and blocks | **16** |
+| Media attachments in total | **50** |
+| Columns in a table | **20** |
+| Buttons in one `buttons` block | **1–8** |
+| `InputRichMessageMedia.id` | 1–64 characters, `A-Z`, `a-z`, `0-9`, `_`, `-` |
+| `callback_data` of a rich button | 1–64 bytes |
+| `InputRichBlockMap` | `zoom` 0–24; `width` and `height` 0–10,000 each, at most 10,000 in total; ratio at most 20 |
+
+---
+
+## Known bugs
+
+Practitioner reports from public trackers, not documented behavior. Status checked on 2026-10-30; recheck the link before you design around one.
+
+| Symptom | Report | Filed | Status |
+|---|---|---|---|
+| `editMessageText` with `rich_message` drops custom emoji that `sendRichMessage` kept. The call returns `ok: true`. Reproduced with `html` and `blocks`. | [tdlib/telegram-bot-api#865](https://github.com/tdlib/telegram-bot-api/issues/865) | 2026-07-04 | open |
+| The same loss in supergroups when the original message is not a reply. Not reproduced in basic groups. | [tdlib/telegram-bot-api#904](https://github.com/tdlib/telegram-bot-api/issues/904) | 2026-09-28 | open |
+| After an edit of an inline message, custom emoji turn into plain Unicode in groups, supergroups and channels. Private chats are not affected. | [tdlib/telegram-bot-api#880](https://github.com/tdlib/telegram-bot-api/issues/880) | 2026-07-30 | open |
+| `chosen_inline_result` arrives without `inline_message_id` when the result uses `InputRichMessageContent` with rich buttons. Callback queries from those buttons carry it. A maintainer replied that the update exists for statistics and is not guaranteed. | [tdlib/telegram-bot-api#895](https://github.com/tdlib/telegram-bot-api/issues/895) | 2026-08-28 | open |
+
+The three custom emoji reports describe different conditions; a shared cause is not established. Treat any edit of a rich message with custom emoji as lossy: check the result in a real client, or resend instead of editing.
+
+---
+
+## Methods
 
 ### sendRichMessage
 
-Отправляет rich message. Если сообщение содержит блок с медиаэлементом, бот должен иметь право отправлять такой тип медиа в чат. При успехе возвращает отправленный [Message].
+Sends a rich message. If the message contains a block with a media element, the bot must have the right to send that media to the chat. On success, the sent [Message] is returned.
 
 | Parameter | Type | Required | Description |
 |---|---|---|---|
-| business_connection_id | String | Optional | Unique identifier of the business connection on behalf of which the message will be sent |
+| business_connection_id | String | Optional | Unique identifier of the business connection on behalf of which the message will be sent. A bot can send rich messages on behalf of a business account only if the corresponding user can send rich messages. |
 | chat_id | Integer or String | **Yes** | Unique identifier for the target chat or username of the target bot, supergroup or channel in the format `@username` |
 | message_thread_id | Integer | Optional | Unique identifier for the target message thread (topic) of a forum; for forum supergroups and private chats of bots with forum topic mode enabled only |
 | direct_messages_topic_id | Integer | Optional | Identifier of the direct messages topic to which the message will be sent; required if the message is sent to a direct messages chat |
+| ephemeral_message_parameters | EphemeralMessageParameters | Optional | Parameters of the ephemeral message to send (10.3) |
 | rich_message | InputRichMessage | **Yes** | The message to be sent |
 | disable_notification | Boolean | Optional | Sends the message silently. Users will receive a notification with no sound. |
 | protect_content | Boolean | Optional | Protects the contents of the sent message from forwarding and saving |
 | allow_paid_broadcast | Boolean | Optional | Pass *True* to allow up to 1000 messages per second, ignoring broadcasting limits for a fee of 0.1 Telegram Stars per message. The relevant Stars will be withdrawn from the bot's balance. |
 | message_effect_id | String | Optional | Unique identifier of the message effect to be added to the message; for private chats only |
 | suggested_post_parameters | SuggestedPostParameters | Optional | A JSON-serialized object containing the parameters of the suggested post to send; for direct messages chats only. If the message is sent as a reply to another suggested post, then that suggested post is automatically declined. |
-| ephemeral_message_parameters | EphemeralMessageParameters | Optional | Parameters for an ephemeral message (10.3) |
 | reply_parameters | ReplyParameters | Optional | Description of the message to reply to |
 | reply_markup | InlineKeyboardMarkup or ReplyKeyboardMarkup or ReplyKeyboardRemove or ForceReply | Optional | Additional interface options |
 
+The method has no `link_preview_options` parameter, and neither does `InputRichMessage`.
+
 ---
 
-### sendRichMessageDraft
+### sendMessageDraft
 
-Стримит частичное rich message пользователю в процессе генерации. **Черновик эфемерен и действует как временный 30-секундный превью** — после финализации вывода **необходимо** вызвать `sendRichMessage` с полным сообщением для его сохранения в чате. Возвращает *True* при успехе.
-
-> **Важно:** `sendRichMessageDraft` работает только для **приватных чатов** (chat_id — Integer, не String/@username).
+Streams a partial plain-text message to a user while it is being generated. The draft is ephemeral and acts as a temporary 30-second preview. Once the output is finalized, call `sendMessage` with the complete message to persist it. Returns *True* on success. Added in 9.3, available to all bots since 9.5.
 
 | Parameter | Type | Required | Description |
 |---|---|---|---|
 | chat_id | Integer | **Yes** | Unique identifier for the target **private chat** |
 | message_thread_id | Integer | Optional | Unique identifier for the target message thread |
-| draft_id | Integer | **Yes** | Unique identifier of the message draft; must be non-zero. Changes to drafts with the same identifier are animated. |
-| rich_message | InputRichMessage | **Yes** | The partial message to be streamed |
-| can_stop | Boolean | Optional | Show a stop button; handle stopped_message_generation updates |
-| keep_on_stop | Boolean | Optional | Keep the draft after stopping; send a final message to persist it |
+| draft_id | Integer | **Yes** | Unique identifier of the message draft; must be non-zero. Changes to drafts with the same identifier are animated. Otherwise, the draft is replaced without animation. |
+| text | String | Optional | 0–4096 characters after entities parsing. Pass an empty text to show a "Thinking…" placeholder. |
+| parse_mode | String | Optional | Mode for parsing entities in the message text |
+| entities | Array of MessageEntity | Optional | Special entities; can be specified instead of *parse_mode* |
+| can_stop | Boolean | Optional | Pass *True* to show a button that stops further drafts; the bot receives the `stopped_message_generation` update (10.3) |
+| keep_on_stop | Boolean | Optional | Pass *True* to keep the draft in the chat when the button is pressed. The draft still disappears after a short time or when the bot sends a message; to preserve it, send it as a new message (10.3) |
 
 ---
 
-### editMessageText (параметр rich_message)
+### sendRichMessageDraft
 
-Метод позволяет редактировать текстовые, rich и game-сообщения. При успехе возвращает отредактированный Message (или True для inline-сообщений).
+Streams a partial rich message to a user while it is being generated. **The draft is ephemeral and acts as a temporary 30-second preview**: once the output is finalized, you **must** call `sendRichMessage` with the complete message to persist it. Returns *True* on success.
 
-Контекст: параметр `text` и `rich_message` взаимоисключающие — требуется ровно один из них.
+> **Important:** `sendRichMessageDraft` works only for **private chats** (`chat_id` is an Integer, not a String or `@username`).
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| chat_id | Integer | **Yes** | Unique identifier for the target **private chat** |
+| message_thread_id | Integer | Optional | Unique identifier for the target message thread |
+| draft_id | Integer | **Yes** | Unique identifier of the message draft; must be non-zero. Changes to drafts with the same identifier are animated. Otherwise, the draft is replaced without animation. |
+| rich_message | InputRichMessage | **Yes** | The partial message to be streamed. Direct upload of new files and explicit upload of files by a URL aren't supported. |
+| can_stop | Boolean | Optional | Pass *True* to show a button that stops further drafts; the bot receives the `stopped_message_generation` update |
+| keep_on_stop | Boolean | Optional | Pass *True* to keep the draft in the chat when the button is pressed. The draft still disappears after a short time or when the bot sends a message; to preserve it, send it as a new message |
+
+### MessageGenerationStopped
+
+The `stopped_message_generation` update of the class `Update` (10.3).
+
+| Field | Type | Description |
+|---|---|---|
+| chat | Chat | Chat in which the message is generated |
+| message_thread_id | Integer | *Optional*. Identifier of the message thread in which the message is generated |
+| draft_id | Integer | Identifier of the message draft which was stopped |
+
+---
+
+### editMessageText (rich_message parameter)
+
+Edits text, rich and game messages. On success, returns the edited Message, or *True* for inline messages.
+
+The `text` and `rich_message` parameters are mutually exclusive: exactly one is required.
 
 | Parameter | Type | Required | Description |
 |---|---|---|---|
@@ -80,37 +143,37 @@ Direct block text is literal RichText, not HTML markup. Dynamic strings should r
 | text | String | Optional | New text of the message, 1-4096 characters after entity parsing; **required if *rich_message* isn't specified** |
 | parse_mode | String | Optional | Mode for parsing entities in the message text |
 | entities | Array of MessageEntity | Optional | Special entities; can be specified instead of *parse_mode* |
-| link_preview_options | LinkPreviewOptions | Optional | Link preview generation options for the message |
-| **rich_message** | **InputRichMessage** | **Optional** | **New rich content of the message; required if *text* isn't specified** |
+| link_preview_options | LinkPreviewOptions | Optional | Link preview generation options for the message. Applies to `text` edits; `InputRichMessage` has no such field. |
+| **rich_message** | **InputRichMessage** | **Optional** | **New rich content of the message; required if *text* isn't specified. Direct upload of new files and explicit upload of files by a URL aren't supported when an inline message is edited.** |
 | reply_markup | InlineKeyboardMarkup | Optional | A JSON-serialized object for an inline keyboard |
 
 ---
 
-## Корневые типы
+## Root types
 
 ### RichMessage
 
-Rich formatted message (тип для получения из Message, не для отправки).
+A rich formatted message. Received in `Message`, not used for sending.
 
 | Field | Type | Description |
 |---|---|---|
 | blocks | Array of RichBlock | Content of the message |
 | is_rtl | Boolean | *Optional*. *True*, if the rich message must be shown right-to-left |
 
-**Контекст:** Поле `rich_message` класса `Message` имеет тип `RichMessage`.
+`Message.rich_message` has the type `RichMessage`, not `InputRichMessage`.
 
 ---
 
 ### InputRichMessage
 
-Описывает rich message для отправки. Ровно **одно** из полей *html*, *markdown* или *blocks* должно быть использовано.
+Describes a rich message to be sent. Exactly **one** of the fields *html*, *markdown* or *blocks* must be used.
 
 | Field | Type | Description |
 |---|---|---|
 | blocks | Array of InputRichBlock | *Optional*. Content described directly as outgoing block entities |
 | html | String | *Optional*. Content of the rich message described using HTML formatting |
 | markdown | String | *Optional*. Content of the rich message described using Markdown formatting |
-| media | Array of InputRichMessageMedia | *Optional*. Media referenced from `html` or `markdown` via `tg://photo?id=`, `tg://video?id=`, or `tg://audio?id=` |
+| media | Array of InputRichMessageMedia | *Optional*. Media referenced from `html` or `markdown` via `tg://photo?id=`, `tg://video?id=`, `tg://document?id=`, or `tg://audio?id=` |
 | is_rtl | Boolean | *Optional*. Pass *True* if the rich message must be shown right-to-left |
 | skip_entity_detection | Boolean | *Optional*. Pass *True* to skip automatic detection of entities (URLs, email addresses, username mentions, hashtags, cashtags, bot commands, phone numbers) |
 
@@ -119,12 +182,12 @@ media blocks and don't need indirection through `InputRichMessage.media`.
 
 ### InputRichMessageMedia
 
-Связывает идентификатор из markup с отправляемым медиа.
+Binds an identifier from the markup to the media being sent.
 
 | Field | Type | Description |
 |---|---|---|
-| id | String | Identifier used in a `tg://photo?id=`, `tg://video?id=`, or `tg://audio?id=` link. Length 1–64; allowed characters: `A-Z`, `a-z`, `0-9`, `_`, `-` |
-| media | InputMediaAnimation or InputMediaAudio or InputMediaPhoto or InputMediaVideo or InputMediaVoiceNote | Media to send. Caption and unrelated `InputMedia*` fields are ignored |
+| id | String | Identifier used in a `tg://photo?id=`, `tg://video?id=`, `tg://document?id=`, or `tg://audio?id=` link. Length 1–64; allowed characters: `A-Z`, `a-z`, `0-9`, `_`, `-` |
+| media | InputMediaAnimation or InputMediaAudio or InputMediaDocument or InputMediaPhoto or InputMediaVideo or InputMediaVoiceNote | Media to send. Everything except the media itself and its properties is ignored |
 
 `InputMedia*.media` supports the standard Telegram file forms:
 
@@ -137,7 +200,7 @@ the JSON-serialized `rich_message` is one form field and each upload is another 
 
 ### InputRichBlock
 
-Bot API 10.2 added outgoing equivalents for the rich block types. Their JSON shape follows the
+Bot API 10.2 added outgoing equivalents for the rich block types, and 10.3 extended them. There are 24 types. Their JSON shape follows the
 received `RichBlock` shape, with nested content typed as `InputRichBlock` and media fields typed
 as `InputMedia*`.
 
@@ -152,20 +215,23 @@ as `InputMedia*`.
 | InputRichBlockAnchor | `{"type":"anchor","name":"..."}` |
 | InputRichBlockList | `{"type":"list","items":InputRichBlockListItem[]}` |
 | InputRichBlockBlockQuotation | `{"type":"blockquote","blocks":InputRichBlock[],"credit"?}` |
+| InputRichBlockExpandableBlockQuotation | `{"type":"expandable_blockquote","text":RichText,"credit"?}` |
 | InputRichBlockPullQuotation | `{"type":"pullquote","text":RichText,"credit"?}` |
 | InputRichBlockCollage | `{"type":"collage","blocks":InputRichBlock[],"caption"?}` |
 | InputRichBlockSlideshow | `{"type":"slideshow","blocks":InputRichBlock[],"caption"?}` |
-| InputRichBlockTable | `{"type":"table","cells":RichBlockTableCell[][],...}` |
+| InputRichBlockTable | `{"type":"table","cells":RichBlockTableCell[][],"is_bordered"?,"is_striped"?,"is_compact"?,"caption"?}` |
 | InputRichBlockDetails | `{"type":"details","summary":RichText,"blocks":InputRichBlock[],"is_open"?}` |
-| InputRichBlockMap | `{"type":"map","location":Location,"zoom":0..24,"width":0..10000,"height":0..10000,"caption"?}` |
+| InputRichBlockMap | `{"type":"map","location":Location,"zoom"?:0..24,"width"?:0..10000,"height"?:0..10000,"caption"?}` |
+| InputRichBlockButtons | `{"type":"buttons","buttons":RichMessageButton[1..8],"align"?}` |
 | InputRichBlockAnimation | `{"type":"animation","animation":InputMediaAnimation,"caption"?}` |
 | InputRichBlockAudio | `{"type":"audio","audio":InputMediaAudio,"caption"?}` |
+| InputRichBlockDocument | `{"type":"document","document":InputMediaDocument,"caption"?}` |
 | InputRichBlockPhoto | `{"type":"photo","photo":InputMediaPhoto,"caption"?}` |
 | InputRichBlockVideo | `{"type":"video","video":InputMediaVideo,"caption"?}` |
 | InputRichBlockVoiceNote | `{"type":"voice_note","voice_note":InputMediaVoiceNote,"caption"?}` |
 | InputRichBlockThinking | `{"type":"thinking","text":RichText}`; draft-only |
 
-For `InputRichBlockAnimation`, `Audio`, `Photo`, `Video`, and `VoiceNote`, the caption inside the
+For `InputRichBlockAnimation`, `Audio`, `Document`, `Photo`, `Video`, and `VoiceNote`, the caption inside the
 nested `InputMedia*` object is ignored. Put the rich caption in the block's `caption`.
 
 ### InputRichBlockListItem
@@ -180,40 +246,60 @@ nested `InputMedia*` object is ignored. Put the rich caption in the block's `cap
 
 ---
 
-### InputRichMessageContent
+### RichMessageButton
 
-Представляет содержимое rich message для отправки как результат inline-запроса. Является подтипом `InputMessageContent`.
-
-Использование: в результатах inline-запросов, guest-запросов и Web App запросов.
+A button in a rich message (10.3). Exactly one of the fields other than `text` and `style` must be used.
 
 | Field | Type | Description |
 |---|---|---|
-| rich_message | InputRichMessage | The message to be sent |
+| text | RichText | Text of the button. May contain only plain text, RichTextCustomEmoji and RichTextDateTime entities. |
+| style | String | *Optional*. One of `danger`, `success`, `primary`, or `link` (a regular link without borders). `link` is allowed only for callback buttons. |
+| url | String | *Optional*. HTTP or tg:// URL to open when the button is pressed |
+| callback_data | String | *Optional*. Data sent in a callback query, 1–64 bytes |
+| web_app | WebAppInfo | *Optional*. Web App launched when the button is pressed. Private chats between a user and the bot only; not supported for messages sent on behalf of a business account. |
+| login_url | LoginUrl | *Optional*. HTTPS URL used to authorize the user automatically. Not supported for ephemeral messages. |
+| switch_inline_query | String | *Optional*. Prompts the user to select a chat and inserts the bot's username and the query. Not supported in channel direct messages chats and on behalf of a business account. |
+| switch_inline_query_current_chat | String | *Optional*. Inserts the bot's username and the query in the current chat. Not supported in channels, channel direct messages chats and on behalf of a business account. |
+| switch_inline_query_chosen_chat | SwitchInlineQueryChosenChat | *Optional*. Prompts the user to select a chat of the specified type. Not supported in channel direct messages chats and on behalf of a business account. |
+| copy_text | CopyTextButton | *Optional*. Copies the specified text to the clipboard |
+| disabled | DisabledButton | *Optional*. The button is disabled and does nothing |
+
+---
+
+### InputRichMessageContent
+
+The content of a rich message sent as the result of an inline query. A subtype of `InputMessageContent`, added in 10.1.
+
+Used in the results of inline queries, guest queries and Web App queries.
+
+| Field | Type | Description |
+|---|---|---|
+| rich_message | InputRichMessage | The message to be sent. Only previously uploaded files may be used in the message. |
 
 ---
 
 ### RichText
 
-Представляет rich formatted text. Может быть:
-- **String** — обычный текст
-- **Array of RichText** — конкатенация текстов
-- **Любой из нижеперечисленных типов** (25 типов)
+A rich formatted text. It can be:
+- a **String** for plain text;
+- an **Array of RichText**, which concatenates the texts;
+- **any of the types below** (26 types).
 
-**Список всех подтипов:** RichTextBold, RichTextItalic, RichTextUnderline, RichTextStrikethrough, RichTextSpoiler, RichTextDateTime, RichTextTextMention, RichTextSubscript, RichTextSuperscript, RichTextMarked, RichTextCode, RichTextCustomEmoji, RichTextMathematicalExpression, RichTextUrl, RichTextEmailAddress, RichTextPhoneNumber, RichTextBankCardNumber, RichTextMention, RichTextHashtag, RichTextCashtag, RichTextBotCommand, RichTextAnchor, RichTextAnchorLink, RichTextReference, RichTextReferenceLink
+**All subtypes:** RichTextBold, RichTextItalic, RichTextUnderline, RichTextStrikethrough, RichTextSpoiler, RichTextDateTime, RichTextTextMention, RichTextSubscript, RichTextSuperscript, RichTextMarked, RichTextCode, RichTextCustomEmoji, RichTextMathematicalExpression, RichTextUrl, RichTextEmailAddress, RichTextPhoneNumber, RichTextBankCardNumber, RichTextMention, RichTextHashtag, RichTextCashtag, RichTextBotCommand, RichTextButton, RichTextAnchor, RichTextAnchorLink, RichTextReference, RichTextReferenceLink
 
 ---
 
 ### RichBlock
 
-Блок в rich formatted message. Может быть любым из 21 типа:
+A block in a rich formatted message. It can be any of 24 types:
 
-RichBlockParagraph, RichBlockSectionHeading, RichBlockPreformatted, RichBlockFooter, RichBlockDivider, RichBlockMathematicalExpression, RichBlockAnchor, RichBlockList, RichBlockBlockQuotation, RichBlockPullQuotation, RichBlockCollage, RichBlockSlideshow, RichBlockTable, RichBlockDetails, RichBlockMap, RichBlockAnimation, RichBlockAudio, RichBlockPhoto, RichBlockVideo, RichBlockVoiceNote, RichBlockThinking
+RichBlockParagraph, RichBlockSectionHeading, RichBlockPreformatted, RichBlockFooter, RichBlockDivider, RichBlockMathematicalExpression, RichBlockAnchor, RichBlockList, RichBlockBlockQuotation, RichBlockExpandableBlockQuotation, RichBlockPullQuotation, RichBlockCollage, RichBlockSlideshow, RichBlockTable, RichBlockDetails, RichBlockMap, RichBlockButtons, RichBlockAnimation, RichBlockAudio, RichBlockDocument, RichBlockPhoto, RichBlockVideo, RichBlockVoiceNote, RichBlockThinking
 
 ---
 
 ### RichBlockCaption
 
-Подпись к rich-блоку (photo, video, audio, animation, map, collage, slideshow).
+A caption of a rich block (photo, video, audio, animation, document, map, collage, slideshow).
 
 | Field | Type | Description |
 |---|---|---|
@@ -224,7 +310,7 @@ RichBlockParagraph, RichBlockSectionHeading, RichBlockPreformatted, RichBlockFoo
 
 ### RichBlockTableCell
 
-Ячейка таблицы.
+A table cell.
 
 | Field | Type | Description |
 |---|---|---|
@@ -239,7 +325,7 @@ RichBlockParagraph, RichBlockSectionHeading, RichBlockPreformatted, RichBlockFoo
 
 ### RichBlockListItem
 
-Элемент списка.
+A list item.
 
 | Field | Type | Description |
 |---|---|---|
@@ -252,11 +338,11 @@ RichBlockParagraph, RichBlockSectionHeading, RichBlockPreformatted, RichBlockFoo
 
 ---
 
-## Блоки (RichBlock*)
+## Blocks (RichBlock*)
 
 ### RichBlockParagraph
 
-Текстовый параграф, соответствует HTML-тегу `<p>`.
+A text paragraph, corresponding to the HTML tag `<p>`.
 
 | Field | Type | Description |
 |---|---|---|
@@ -267,7 +353,7 @@ RichBlockParagraph, RichBlockSectionHeading, RichBlockPreformatted, RichBlockFoo
 
 ### RichBlockSectionHeading
 
-Заголовок секции, соответствует HTML-тегам `<h1>`, `<h2>`, `<h3>`, `<h4>`, `<h5>`, или `<h6>`.
+A section heading, corresponding to the HTML tags `<h1>`, `<h2>`, `<h3>`, `<h4>`, `<h5>`, or `<h6>`.
 
 | Field | Type | Description |
 |---|---|---|
@@ -279,7 +365,7 @@ RichBlockParagraph, RichBlockSectionHeading, RichBlockPreformatted, RichBlockFoo
 
 ### RichBlockPreformatted
 
-Блок с форматированным текстом (code), соответствует HTML-тегам `<pre>` и `<code>`.
+A preformatted (code) block, corresponding to the HTML tags `<pre>` and `<code>`.
 
 | Field | Type | Description |
 |---|---|---|
@@ -291,7 +377,7 @@ RichBlockParagraph, RichBlockSectionHeading, RichBlockPreformatted, RichBlockFoo
 
 ### RichBlockFooter
 
-Футер, соответствует HTML-тегу `<footer>`.
+A footer, corresponding to the HTML tag `<footer>`.
 
 | Field | Type | Description |
 |---|---|---|
@@ -302,7 +388,7 @@ RichBlockParagraph, RichBlockSectionHeading, RichBlockPreformatted, RichBlockFoo
 
 ### RichBlockDivider
 
-Разделитель, соответствует HTML-тегу `<hr/>`.
+A divider, corresponding to the HTML tag `<hr/>`.
 
 | Field | Type | Description |
 |---|---|---|
@@ -312,7 +398,7 @@ RichBlockParagraph, RichBlockSectionHeading, RichBlockPreformatted, RichBlockFoo
 
 ### RichBlockMathematicalExpression
 
-Блок с математическим выражением в формате LaTeX, соответствует кастомному HTML-тегу `<tg-math-block>`.
+A block with a mathematical expression in LaTeX format, corresponding to the custom HTML tag `<tg-math-block>`.
 
 | Field | Type | Description |
 |---|---|---|
@@ -323,7 +409,7 @@ RichBlockParagraph, RichBlockSectionHeading, RichBlockPreformatted, RichBlockFoo
 
 ### RichBlockAnchor
 
-Блок с якорем, соответствует HTML-тегу `<a>` с атрибутом `name`.
+A block with an anchor, corresponding to the HTML tag `<a>` with the `name` attribute.
 
 | Field | Type | Description |
 |---|---|---|
@@ -334,7 +420,7 @@ RichBlockParagraph, RichBlockSectionHeading, RichBlockPreformatted, RichBlockFoo
 
 ### RichBlockList
 
-Список блоков, соответствует HTML-тегам `<ul>` или `<ol>` с вложенными `<li>`.
+A list of blocks, corresponding to the HTML tags `<ul>` or `<ol>` with nested `<li>`.
 
 | Field | Type | Description |
 |---|---|---|
@@ -345,7 +431,7 @@ RichBlockParagraph, RichBlockSectionHeading, RichBlockPreformatted, RichBlockFoo
 
 ### RichBlockBlockQuotation
 
-Блочная цитата, соответствует HTML-тегу `<blockquote>`.
+A block quotation, corresponding to the HTML tag `<blockquote>`.
 
 | Field | Type | Description |
 |---|---|---|
@@ -355,9 +441,21 @@ RichBlockParagraph, RichBlockSectionHeading, RichBlockPreformatted, RichBlockFoo
 
 ---
 
+### RichBlockExpandableBlockQuotation
+
+A block quotation that can be expanded or collapsed back, corresponding to the HTML tag `<blockquote>` with the custom attribute `expandable` (10.3).
+
+| Field | Type | Description |
+|---|---|---|
+| type | String | Type of the block, always **"expandable_blockquote"** |
+| text | RichText | Content of the block |
+| credit | RichText | *Optional*. Credit of the block |
+
+---
+
 ### RichBlockPullQuotation
 
-Выровненная по центру цитата, приблизительно соответствует HTML-тегу `<aside>`.
+A center-aligned quotation, roughly corresponding to the HTML tag `<aside>`.
 
 | Field | Type | Description |
 |---|---|---|
@@ -369,7 +467,7 @@ RichBlockParagraph, RichBlockSectionHeading, RichBlockPreformatted, RichBlockFoo
 
 ### RichBlockCollage
 
-Коллаж, соответствует кастомному HTML-тегу `<tg-collage>`.
+A collage, corresponding to the custom HTML tag `<tg-collage>`.
 
 | Field | Type | Description |
 |---|---|---|
@@ -381,7 +479,7 @@ RichBlockParagraph, RichBlockSectionHeading, RichBlockPreformatted, RichBlockFoo
 
 ### RichBlockSlideshow
 
-Слайдшоу, соответствует кастомному HTML-тегу `<tg-slideshow>`.
+A slideshow, corresponding to the custom HTML tag `<tg-slideshow>`.
 
 | Field | Type | Description |
 |---|---|---|
@@ -393,7 +491,7 @@ RichBlockParagraph, RichBlockSectionHeading, RichBlockPreformatted, RichBlockFoo
 
 ### RichBlockTable
 
-Таблица, соответствует HTML-тегу `<table>`.
+A table, corresponding to the HTML tag `<table>`.
 
 | Field | Type | Description |
 |---|---|---|
@@ -408,7 +506,7 @@ RichBlockParagraph, RichBlockSectionHeading, RichBlockPreformatted, RichBlockFoo
 
 ### RichBlockDetails
 
-Раскрываемый блок (collapsible), соответствует HTML-тегу `<details>`.
+An expandable block, corresponding to the HTML tag `<details>`.
 
 | Field | Type | Description |
 |---|---|---|
@@ -421,7 +519,7 @@ RichBlockParagraph, RichBlockSectionHeading, RichBlockPreformatted, RichBlockFoo
 
 ### RichBlockMap
 
-Блок с картой, соответствует кастомному HTML-тегу `<tg-map>`.
+A block with a map, corresponding to the custom HTML tag `<tg-map>`.
 
 | Field | Type | Description |
 |---|---|---|
@@ -434,9 +532,21 @@ RichBlockParagraph, RichBlockSectionHeading, RichBlockPreformatted, RichBlockFoo
 
 ---
 
+### RichBlockButtons
+
+A block with a list of buttons shown in one row, corresponding to the custom HTML tag `<tg-button-row>` (10.3).
+
+| Field | Type | Description |
+|---|---|---|
+| type | String | Type of the block, always **"buttons"** |
+| buttons | Array of RichMessageButton | The buttons |
+| align | String | *Optional*. Horizontal alignment of the buttons: "left", "center", or "right" |
+
+---
+
 ### RichBlockAnimation
 
-Блок с анимацией, соответствует HTML-тегу `<video>`.
+A block with an animation, corresponding to the HTML tag `<video>`.
 
 | Field | Type | Description |
 |---|---|---|
@@ -449,7 +559,7 @@ RichBlockParagraph, RichBlockSectionHeading, RichBlockPreformatted, RichBlockFoo
 
 ### RichBlockAudio
 
-Блок с музыкальным файлом, соответствует HTML-тегу `<audio>`.
+A block with a music file, corresponding to the HTML tag `<audio>`.
 
 | Field | Type | Description |
 |---|---|---|
@@ -459,9 +569,21 @@ RichBlockParagraph, RichBlockSectionHeading, RichBlockPreformatted, RichBlockFoo
 
 ---
 
+### RichBlockDocument
+
+A block with a general file, corresponding to the custom HTML tag `<tg-document>` (10.3).
+
+| Field | Type | Description |
+|---|---|---|
+| type | String | Type of the block, always **"document"** |
+| document | Document | The document |
+| caption | RichBlockCaption | *Optional*. Caption of the block |
+
+---
+
 ### RichBlockPhoto
 
-Блок с фото, соответствует HTML-тегу `<img>`.
+A block with a photo, corresponding to the HTML tag `<img>`.
 
 | Field | Type | Description |
 |---|---|---|
@@ -474,7 +596,7 @@ RichBlockParagraph, RichBlockSectionHeading, RichBlockPreformatted, RichBlockFoo
 
 ### RichBlockVideo
 
-Блок с видео, соответствует HTML-тегу `<video>`.
+A block with a video, corresponding to the HTML tag `<video>`.
 
 | Field | Type | Description |
 |---|---|---|
@@ -487,7 +609,7 @@ RichBlockParagraph, RichBlockSectionHeading, RichBlockPreformatted, RichBlockFoo
 
 ### RichBlockVoiceNote
 
-Блок с голосовым сообщением, соответствует HTML-тегу `<audio>`.
+A block with a voice message, corresponding to the HTML tag `<audio>`.
 
 | Field | Type | Description |
 |---|---|---|
@@ -499,9 +621,9 @@ RichBlockParagraph, RichBlockSectionHeading, RichBlockPreformatted, RichBlockFoo
 
 ### RichBlockThinking
 
-Блок-плейсхолдер "Thinking…", соответствует кастомному HTML-тегу `<tg-thinking>`.
+A "Thinking…" placeholder block, corresponding to the custom HTML tag `<tg-thinking>`.
 
-**Критическое ограничение:** Может использоваться **только** в `sendRichMessageDraft`. Не может быть получен в сообщениях (не хранится в Message).
+**Hard constraint:** it can be used **only** in `sendRichMessageDraft`. It can't be received in messages and is never stored in a Message.
 
 | Field | Type | Description |
 |---|---|---|
@@ -510,11 +632,11 @@ RichBlockParagraph, RichBlockSectionHeading, RichBlockPreformatted, RichBlockFoo
 
 ---
 
-## Инлайн-текст (RichText*)
+## Inline text (RichText*)
 
 ### RichTextBold
 
-Жирный текст.
+Bold text.
 
 | Field | Type | Description |
 |---|---|---|
@@ -525,7 +647,7 @@ RichBlockParagraph, RichBlockSectionHeading, RichBlockPreformatted, RichBlockFoo
 
 ### RichTextItalic
 
-Курсивный текст.
+Italic text.
 
 | Field | Type | Description |
 |---|---|---|
@@ -536,7 +658,7 @@ RichBlockParagraph, RichBlockSectionHeading, RichBlockPreformatted, RichBlockFoo
 
 ### RichTextUnderline
 
-Подчёркнутый текст.
+Underlined text.
 
 | Field | Type | Description |
 |---|---|---|
@@ -547,7 +669,7 @@ RichBlockParagraph, RichBlockSectionHeading, RichBlockPreformatted, RichBlockFoo
 
 ### RichTextStrikethrough
 
-Зачёркнутый текст.
+Strikethrough text.
 
 | Field | Type | Description |
 |---|---|---|
@@ -558,7 +680,7 @@ RichBlockParagraph, RichBlockSectionHeading, RichBlockPreformatted, RichBlockFoo
 
 ### RichTextSpoiler
 
-Текст, скрытый спойлером.
+Text hidden behind a spoiler.
 
 | Field | Type | Description |
 |---|---|---|
@@ -569,7 +691,7 @@ RichBlockParagraph, RichBlockSectionHeading, RichBlockPreformatted, RichBlockFoo
 
 ### RichTextDateTime
 
-Форматированные дата и время.
+Formatted date and time.
 
 | Field | Type | Description |
 |---|---|---|
@@ -582,7 +704,7 @@ RichBlockParagraph, RichBlockSectionHeading, RichBlockPreformatted, RichBlockFoo
 
 ### RichTextTextMention
 
-Упоминание пользователя Telegram по идентификатору.
+A mention of a Telegram user by identifier.
 
 | Field | Type | Description |
 |---|---|---|
@@ -594,7 +716,7 @@ RichBlockParagraph, RichBlockSectionHeading, RichBlockPreformatted, RichBlockFoo
 
 ### RichTextSubscript
 
-Нижний индекс.
+Subscript text.
 
 | Field | Type | Description |
 |---|---|---|
@@ -605,7 +727,7 @@ RichBlockParagraph, RichBlockSectionHeading, RichBlockPreformatted, RichBlockFoo
 
 ### RichTextSuperscript
 
-Верхний индекс.
+Superscript text.
 
 | Field | Type | Description |
 |---|---|---|
@@ -616,7 +738,7 @@ RichBlockParagraph, RichBlockSectionHeading, RichBlockPreformatted, RichBlockFoo
 
 ### RichTextMarked
 
-Выделенный (highlight) текст.
+Marked (highlighted) text.
 
 | Field | Type | Description |
 |---|---|---|
@@ -627,7 +749,7 @@ RichBlockParagraph, RichBlockSectionHeading, RichBlockPreformatted, RichBlockFoo
 
 ### RichTextCode
 
-Моноширинный текст (инлайн-код).
+Monospace text (inline code).
 
 | Field | Type | Description |
 |---|---|---|
@@ -638,7 +760,7 @@ RichBlockParagraph, RichBlockSectionHeading, RichBlockPreformatted, RichBlockFoo
 
 ### RichTextCustomEmoji
 
-Кастомный эмодзи.
+A custom emoji.
 
 | Field | Type | Description |
 |---|---|---|
@@ -650,7 +772,7 @@ RichBlockParagraph, RichBlockSectionHeading, RichBlockPreformatted, RichBlockFoo
 
 ### RichTextMathematicalExpression
 
-Математическое выражение (инлайн).
+An inline mathematical expression.
 
 | Field | Type | Description |
 |---|---|---|
@@ -661,7 +783,7 @@ RichBlockParagraph, RichBlockSectionHeading, RichBlockPreformatted, RichBlockFoo
 
 ### RichTextUrl
 
-Текст со ссылкой.
+Text with a link.
 
 | Field | Type | Description |
 |---|---|---|
@@ -673,7 +795,7 @@ RichBlockParagraph, RichBlockSectionHeading, RichBlockPreformatted, RichBlockFoo
 
 ### RichTextEmailAddress
 
-Текст с email-адресом.
+Text with an email address.
 
 | Field | Type | Description |
 |---|---|---|
@@ -685,7 +807,7 @@ RichBlockParagraph, RichBlockSectionHeading, RichBlockPreformatted, RichBlockFoo
 
 ### RichTextPhoneNumber
 
-Текст с номером телефона.
+Text with a phone number.
 
 | Field | Type | Description |
 |---|---|---|
@@ -697,7 +819,7 @@ RichBlockParagraph, RichBlockSectionHeading, RichBlockPreformatted, RichBlockFoo
 
 ### RichTextBankCardNumber
 
-Текст с номером банковской карты.
+Text with a bank card number.
 
 | Field | Type | Description |
 |---|---|---|
@@ -709,7 +831,7 @@ RichBlockParagraph, RichBlockSectionHeading, RichBlockPreformatted, RichBlockFoo
 
 ### RichTextMention
 
-Упоминание по username.
+A mention by username.
 
 | Field | Type | Description |
 |---|---|---|
@@ -721,7 +843,7 @@ RichBlockParagraph, RichBlockSectionHeading, RichBlockPreformatted, RichBlockFoo
 
 ### RichTextHashtag
 
-Хэштег.
+A hashtag.
 
 | Field | Type | Description |
 |---|---|---|
@@ -733,7 +855,7 @@ RichBlockParagraph, RichBlockSectionHeading, RichBlockPreformatted, RichBlockFoo
 
 ### RichTextCashtag
 
-Кэштег.
+A cashtag.
 
 | Field | Type | Description |
 |---|---|---|
@@ -745,7 +867,7 @@ RichBlockParagraph, RichBlockSectionHeading, RichBlockPreformatted, RichBlockFoo
 
 ### RichTextBotCommand
 
-Команда бота.
+A bot command.
 
 | Field | Type | Description |
 |---|---|---|
@@ -755,9 +877,20 @@ RichBlockParagraph, RichBlockSectionHeading, RichBlockPreformatted, RichBlockFoo
 
 ---
 
+### RichTextButton
+
+A button inside rich text, corresponding to the custom HTML tag `<tg-button>` (10.3).
+
+| Field | Type | Description |
+|---|---|---|
+| type | String | always **"button"** |
+| button | RichMessageButton | The button |
+
+---
+
 ### RichTextAnchor
 
-Якорь (anchor point) для внутридокументной навигации.
+An anchor point for in-document navigation.
 
 | Field | Type | Description |
 |---|---|---|
@@ -768,7 +901,7 @@ RichBlockParagraph, RichBlockSectionHeading, RichBlockPreformatted, RichBlockFoo
 
 ### RichTextAnchorLink
 
-Ссылка на якорь.
+A link to an anchor.
 
 | Field | Type | Description |
 |---|---|---|
@@ -780,7 +913,7 @@ RichBlockParagraph, RichBlockSectionHeading, RichBlockPreformatted, RichBlockFoo
 
 ### RichTextReference
 
-Определение сноски (reference). Соответствует `<tg-reference name="...">...</tg-reference>`.
+A reference definition. Corresponds to `<tg-reference name="...">...</tg-reference>`.
 
 | Field | Type | Description |
 |---|---|---|
@@ -792,7 +925,7 @@ RichBlockParagraph, RichBlockSectionHeading, RichBlockPreformatted, RichBlockFoo
 
 ### RichTextReferenceLink
 
-Ссылка на сноску (reference link). Соответствует `<a href="#...">`.
+A link to a reference. Corresponds to `<a href="#...">`.
 
 | Field | Type | Description |
 |---|---|---|
@@ -802,15 +935,15 @@ RichBlockParagraph, RichBlockSectionHeading, RichBlockPreformatted, RichBlockFoo
 
 ---
 
-## Форматирование: Markdown и HTML синтаксис
+## Formatting: Markdown and HTML syntax
 
 ### Rich Markdown style
 
-Режим активируется передачей контента в поле `markdown` объекта `InputRichMessage`. Синтаксис:
+Pass the content in the `markdown` field of `InputRichMessage`. Syntax:
 
-```
-**bold text**          # или __bold text__
-*italic text*          # или _italic text_
+````
+**bold text**          # or __bold text__
+*italic text*          # or _italic text_
 ~~strikethrough text~~
 `inline fixed-width code`
 ==marked text==
@@ -822,7 +955,7 @@ RichBlockParagraph, RichBlockSectionHeading, RichBlockPreformatted, RichBlockFoo
 [inline mention of a user](tg://user?id=123456789)
 ![👍](tg://emoji?id=5368324170671202286)
 ![22:45 tomorrow](tg://time?unix=1647531900&format=wDT)
-$x^2 + y^2$           # инлайн-формула LaTeX
+$x^2 + y^2$           # inline LaTeX formula
 
 # Heading 1
 ## Heading 2  ...  ###### Heading 6
@@ -849,8 +982,9 @@ print('preformatted code block')
 ![](https://example.com/audio.mp3)               # audio block
 ![](https://example.com/audio.ogg)               # voice note block
 ![](https://example.com/animation.gif)           # animation block
+![](https://example.com/document.zip)            # document block
 
-![](https://example.com/photo.jpg "Photo caption")  # с подписью
+![](https://example.com/photo.jpg "Photo caption")  # with a caption
 
 | Header 1 | Header 2 |
 |:---------|:--------:|
@@ -859,7 +993,7 @@ print('preformatted code block')
 Text with a reference[^id1].
 [^id1]: Definition of the footnote.
 
-$$E = mc^2$$           # блочная формула LaTeX
+$$E = mc^2$$           # block LaTeX formula
 ```math
 E = mc^2
 ```
@@ -875,9 +1009,9 @@ E = mc^2
 <tg-slideshow>
 ![](https://example.com/photo.jpg)
 </tg-slideshow>
-```
+````
 
-Для функций без Markdown-синтаксиса используются HTML-теги:
+Features without Markdown syntax use HTML tags:
 ```html
 <u>underlined</u>, <ins>underlined</ins>
 <sub>subscript</sub>
@@ -886,18 +1020,19 @@ E = mc^2
 <aside>Pull quote<cite>The Author</cite></aside>
 <details open><summary>Title</summary>Content</details>
 <tg-map lat="41.9" long="12.5" zoom="14"/>
+<tg-button-row align="left"><tg-button type="url" url="https://t.me">url</tg-button></tg-button-row>
 ```
 
 ### Rich HTML style
 
-Режим активируется передачей контента в поле `html` объекта `InputRichMessage`.
+Pass the content in the `html` field of `InputRichMessage`.
 
-Поддерживаемые теги:
+Supported tags:
 - `<b>`, `<strong>` — bold
 - `<i>`, `<em>` — italic
 - `<u>`, `<ins>` — underline
 - `<s>`, `<strike>`, `<del>` — strikethrough
-- `<code>` — inline code (programming language не указывается для standalone code)
+- `<code>` — inline code (a programming language can't be set on a standalone `code`)
 - `<mark>` — marked/highlight
 - `<sub>` — subscript
 - `<sup>` — superscript
@@ -910,137 +1045,138 @@ E = mc^2
 - `<a name="anchor-name"></a>` — anchor definition
 - `<tg-reference name="...">...</tg-reference>` — reference definition
 - `<tg-emoji emoji-id="...">fallback</tg-emoji>` — custom emoji
-- `<img src="tg://emoji?id=..."/>` — custom emoji (альтернативный синтаксис)
+- `<img src="tg://emoji?id=..."/>` — custom emoji (alternative syntax)
 - `<tg-time unix="..." format="...">text</tg-time>` — datetime
 - `<tg-math>LaTeX</tg-math>` — inline formula
 - `<h1>`...`<h6>` — headings
 - `<p>` — paragraph
 - `<pre>` — preformatted block
-- `<pre><code class="language-python">...</code></pre>` — с языком
+- `<pre><code class="language-python">...</code></pre>` — with a language
 - `<footer>` — footer
 - `<hr/>` — divider
 - `<ul><li>...</li></ul>` — unordered list
-- `<ol><li>...</li></ol>` — ordered list (атрибуты: `start`, `type`, `reversed`)
+- `<ol><li>...</li></ol>` — ordered list (attributes: `start`, `type`, `reversed`)
 - `<ol><li value="7" type="i">...</li></ol>` — explicit item value
+- `<ul><li><input type="checkbox" checked>...</li></ul>` — checkbox item
 - `<blockquote>...<cite>The Author</cite></blockquote>` — block quotation
+- `<blockquote expandable>...<cite>The Author</cite></blockquote>` — expandable block quotation
 - `<aside>...<cite>The Author</cite></aside>` — pull quotation
 - `<img src="https://..."/>` — photo block
-- `<video src="https://..."></video>` — video block (или animation для .gif)
+- `<video src="https://..."></video>` — video block (or animation for .gif)
 - `<audio src="https://...mp3"></audio>` — audio block
 - `<audio src="https://...ogg"></audio>` — voice note block
-- `<figure><img src="..." tg-spoiler/><figcaption>Caption<cite>Credit</cite></figcaption></figure>` — медиа с подписью и spoiler
+- `<tg-document src="https://..."></tg-document>` — document block
+- `<figure><img src="..." tg-spoiler/><figcaption>Caption<cite>Credit</cite></figcaption></figure>` — media with a caption and a spoiler
 - `<tg-map lat="..." long="..." zoom="..."/>` — map block
 - `<tg-collage>...</tg-collage>` — collage
 - `<tg-slideshow>...</tg-slideshow>` — slideshow
-- `<table bordered striped><caption>...</caption><tr><th>...</th><td colspan="2" rowspan="2" align="left" valign="top">...</td></tr></table>` — table
-- `<details>` / `<details open>` — collapsible block с `<summary>`
+- `<table bordered striped compact><caption>...</caption><tr><th>...</th><td colspan="2" rowspan="2" align="left" valign="top">...</td></tr></table>` — table
+- `<details>` / `<details open>` — collapsible block with `<summary>`
 - `<tg-math-block>LaTeX</tg-math-block>` — block formula
+- `<tg-button type="url" url="https://t.me">...</tg-button>` — inline button; `type` is `url`, `callback_data`, `web_app`, `login_url`, `switch_inline_query`, `switch_inline_query_current_chat`, `switch_inline_query_chosen_chat`, `copy_text`, or `disabled`
+- `<tg-button-row align="left">...</tg-button-row>` — button row
 
-**Поддерживаемые HTML entities:** все числовые, а также: `&lt;`, `&gt;`, `&amp;`, `&quot;`, `&apos;`, `&nbsp;`, `&hellip;`, `&mdash;`, `&ndash;`, `&lsquo;`, `&rsquo;`, `&ldquo;`, `&rdquo;`.
+`<tg-thinking>Thinking...</tg-thinking>` is available only in `sendRichMessageDraft`.
+
+**Supported HTML entities:** all numerical ones, plus `&lt;`, `&gt;`, `&amp;`, `&quot;`, `&apos;`, `&nbsp;`, `&hellip;`, `&mdash;`, `&ndash;`, `&lsquo;`, `&rsquo;`, `&ldquo;`, `&rdquo;`.
 
 ---
 
-## Ограничения и заметки
+## Constraints and notes
 
-### Числовые лимиты
+### Media
 
-| Ограничение | Значение |
-|---|---|
-| Максимум символов UTF-8 в тексте (включая alt-text emoji и формулы) | **32 768** |
-| Максимум блоков (включая вложенные, list items, table rows, quotation blocks, details blocks) | **500** |
-| Максимум уровней вложенности форматирования и блоков | **16** |
-| Максимум медиавложений (photos, videos, audio) | **50** |
-| Максимум колонок в таблице | **20** |
+- Media can be specified **only as separate blocks**, never inline.
+- In markup a media block takes one of two sources: a direct HTTP/HTTPS URL, or a `tg://photo|video|document|audio?id=` link bound through `InputRichMessage.media`. The bound `InputMedia*.media` is a `file_id`, a URL, or a multipart `attach://` upload.
+- The official formatting notes still say "Media blocks support only HTTP and HTTPS URLs". Read that sentence as the rule for a literal URL in markup: the introduction to the same section allows `tg://` links "to reuse previously uploaded files or upload a new file".
+- The media type of a direct URL is determined by the MIME type and the URL. The type of a bound item comes from the nested `InputMedia*` object.
+- In Markdown syntax, the optional title after the URL is used as the caption.
+- Photo, video and animation blocks support the `tg-spoiler` attribute that hides the preview; `has_spoiler` exists only on those three received block types.
 
-### Медиа
+### Automatic entity detection
 
-- Медиаблоки можно указывать **только как отдельные блоки** — не инлайн.
-- Медиаблоки поддерживают **только HTTP и HTTPS URLs**.
-- Тип медиа определяется по MIME-типу и URL.
-- В Markdown-синтаксисе опциональный заголовок после URL используется как подпись.
-- Photo, Video, Animation, Audio поддерживают `tg-spoiler` атрибут для скрытия превью.
+Plain URLs, email addresses, username mentions, hashtags, cashtags, bot commands, phone numbers and bank card numbers are detected by default. To disable detection, pass `skip_entity_detection: True` in `InputRichMessage`.
 
-### Автоматическое обнаружение сущностей
+Telegram clients show an "Open this link?" alert with the full URL before following an inline link.
 
-По умолчанию автоматически детектируются: plain URLs, email addresses, username mentions, hashtags, cashtags, bot commands, phone numbers, bank card numbers. Для отключения передать `skip_entity_detection: True` в `InputRichMessage`.
+### Link previews
 
-Telegram clients покажут алерт «Open this link?» с полным URL перед переходом по inline-ссылке.
+`sendRichMessage` and `InputRichMessage` have no `link_preview_options`, so a rich message gets no link preview control. If the post needs a large preview or a chosen preview URL, use `sendMessage`.
 
-### sendRichMessageDraft — стриминг
+### Custom emoji
 
-- Черновик **эфемерен**: 30-секундный превью, не сохраняется в чате.
-- После финализации **обязательно** вызвать `sendRichMessage` с полным сообщением.
-- `draft_id` должен быть ненулевым; изменения черновиков с одинаковым `draft_id` **анимированы**.
-- Работает **только в приватных чатах** (chat_id — Integer, не @username).
-- `RichBlockThinking` может использоваться **только** в `sendRichMessageDraft`.
+The formatting rules allow custom emoji for bots that purchased additional usernames on Fragment, or in messages the bot sends directly to private, group and supergroup chats when the bot's owner has Telegram Premium. Channels aren't named in the second case, so don't rely on custom emoji in a channel post without a Fragment username. Rich messages from a bot to a channel with custom emoji were not tested live for this reference. See also [Known bugs](#known-bugs) for edits.
 
-### RichBlockThinking
+### Drafts
 
-- **Только для** `sendRichMessageDraft` — нельзя получить из Message.
-- Рекомендованные кастомные эмодзи для блока: https://t.me/addemoji/AIActions
+- A draft is **ephemeral**: a 30-second preview that isn't stored in the chat.
+- After the output is finalized, you **must** call `sendRichMessage` (or `sendMessage` for `sendMessageDraft`) with the complete message.
+- `draft_id` must be non-zero; changes to drafts with the same `draft_id` are **animated**.
+- Drafts work **only in private chats** (`chat_id` is an Integer, not `@username`).
+- `RichBlockThinking` can be used **only** in `sendRichMessageDraft`. Recommended custom emoji for it: https://t.me/addemoji/AIActions
 
-### Rich Markdown совместимость
+### Rich Markdown compatibility
 
-- Rich Markdown **совместим с GitHub Flavored Markdown** там, где это возможно.
-- Может содержать произвольный HTML; поддерживаемые rich message HTML-теги парсятся согласно Rich HTML style.
-- Nested markdown внутри inline HTML-тегов парсится.
+- Rich Markdown is **compatible with GitHub Flavored Markdown** where possible.
+- It can contain arbitrary HTML; supported rich message HTML tags are parsed as in Rich HTML style.
+- Nested markdown inside inline HTML tags is parsed. Markdown isn't parsed inside block HTML tags other than `<details>`, `<tg-collage>` and `<tg-slideshow>`, so only HTML tags can be used there.
 
-### Таблицы
+### Tables
 
-- Ячейки таблиц могут содержать **только inline-форматирование** (не блоки).
+- Table cells can contain **only inline formatting**, not blocks.
 
-### Формулы
+### Formulas
 
-- Источник формулы трактуется как **raw LaTeX**.
+- Formula source is treated as **raw LaTeX**.
 
-### Анкоры и ссылки
+### Anchors and links
 
-- Пустой `<a name="..."></a>` сам по себе создаёт якорь для навигации через `<a href="#...">`.
-- `RichTextAnchorLink` с пустым `anchor_name` — ссылка на начало сообщения.
+- An empty `<a name="..."></a>` on its own creates an anchor for navigation via `<a href="#...">`.
+- `RichTextAnchorLink` with an empty `anchor_name` links to the top of the message.
 
-### `<figcaption>` и `<cite>`
+### `<figcaption>` and `<cite>`
 
-- Внутри `<figcaption>` можно использовать `<cite>` для указания авторства (caption credit).
+- Inside `<figcaption>`, use `<cite>` to specify caption credit.
 
 ### `<details>` / RichBlockDetails
 
-- Тело блока может содержать rich message content.
-- Атрибут `open` / поле `is_open: True` — блок раскрыт по умолчанию.
+- The body of the block can contain rich message content.
+- The `open` attribute or the `is_open: True` field shows the block expanded by default.
 
-### InputRichMessageContent в inline / guest / Web App
+### InputRichMessageContent in inline, guest and Web App results
 
-- `InputRichMessageContent` является подтипом `InputMessageContent`.
-- Разрешён к использованию в результатах: **inline-запросов**, **guest-запросов** и **Web App запросов**.
-- Содержит единственное поле `rich_message: InputRichMessage`.
+- `InputRichMessageContent` is a subtype of `InputMessageContent`.
+- It is allowed in the results of **inline queries**, **guest queries** and **Web App queries**.
+- It has a single field, `rich_message: InputRichMessage`, and only previously uploaded files may be used in it.
+- `ChosenInlineResult.inline_message_id` isn't reliable for this content; see [Known bugs](#known-bugs).
 
 ### editMessageText
 
-- Параметры `text` и `rich_message` взаимоисключающие: требуется ровно один.
-- `text` required if `rich_message` isn't specified; `rich_message` required if `text` isn't specified.
-- `editMessageMedia` описание явно указывает, что позволяет «replace a text or a rich message with a media».
+- The `text` and `rich_message` parameters are mutually exclusive: exactly one is required.
+- `editMessageMedia` can "replace a text or a rich message with a media".
 
-### sendRichMessage — allow_paid_broadcast
+### sendRichMessage and allow_paid_broadcast
 
-- При `allow_paid_broadcast: True` — до 1000 сообщений в секунду, **0.1 Telegram Stars** за каждое сообщение (списываются с баланса бота).
+- With `allow_paid_broadcast: True`, up to 1000 messages per second are allowed for **0.1 Telegram Stars** per message, withdrawn from the bot's balance.
 
-### Поле rich_message в Message
+### Message.rich_message
 
-- `Message.rich_message` имеет тип `RichMessage` (не `InputRichMessage`).
-- Поле *Optional* — присутствует только если сообщение является rich-форматированным.
+- The field is *Optional* and is present only if the message is rich-formatted.
 
-### Zoom карты
+### Map zoom
 
-- Исходящий `InputRichBlockMap.zoom` опционален и принимает **0–24**; полученный `RichBlockMap.zoom` описывает фактический масштаб.
+- The outgoing `InputRichBlockMap.zoom` is optional and accepts **0–24**; the received `RichBlockMap.zoom` describes the actual scale.
 
-### Ordered list: типы нумерации
+### Ordered lists: numbering types
 
-- `type` в `RichBlockListItem` и `<ol type="...">`: `"a"` (строчные буквы), `"A"` (заглавные буквы), `"i"` (строчные римские цифры), `"I"` (заглавные римские цифры), `"1"` (десятичные цифры).
-- Поддерживаются атрибуты `start` (начальное число), `reversed` (обратный порядок), `value` (явное значение конкретного элемента).
+- `type` in `RichBlockListItem` and `<ol type="...">`: `"a"` (lowercase letters), `"A"` (uppercase letters), `"i"` (lowercase Roman numerals), `"I"` (uppercase Roman numerals), `"1"` (decimal numbers).
+- The attributes `start` (first number), `reversed` (reverse order) and `value` (explicit value of an item) are supported.
 
-### Клиентская поддержка
+### Client support
 
-- Документация не содержит явных упоминаний об ограничениях рендеринга по типу чата (каналы/группы/личные чаты) за исключением:
-  - `message_effect_id` — только для private chats
-  - `sendRichMessageDraft` — только для private chats
-  - `suggested_post_parameters` — только для direct messages chats
-- Требование прав на отправку медиа: если rich message содержит медиаблок, бот должен иметь соответствующие права в чате.
+- The documentation names no rendering restrictions by chat type (channels, groups, private chats) except:
+  - `message_effect_id`: private chats only
+  - `sendMessageDraft` and `sendRichMessageDraft`: private chats only
+  - `suggested_post_parameters`: direct messages chats only
+  - `RichMessageButton.web_app`: private chats between a user and the bot only
+- Media rights: if a rich message contains a media block, the bot must have the matching right in the chat.

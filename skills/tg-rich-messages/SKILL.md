@@ -8,10 +8,13 @@ license: MIT
 
 Sending requires network access to `api.telegram.org` and a Telegram bot token.
 
+Checked against the official docs on 2026-10-30: Bot API 10.3 (latest, August 24, 2026). Nothing here was run against a live bot.
+
 ## Overview
 
 Bot API 10.1 introduced **Rich Messages**. Bot API 10.2 (July 14, 2026) added direct
-outgoing block JSON and explicit media bindings. Rich messages are document-grade content
+outgoing block JSON and explicit media bindings. Bot API 10.3 (August 24, 2026) added buttons,
+compact tables, expandable quotations and document blocks. Rich messages are document-grade content
 delivered directly in chat. Think Instant View articles — headings, tables, collage,
 slideshow, map, math, collapsible blocks — but sent by a bot via `sendRichMessage`.
 
@@ -28,8 +31,14 @@ slideshow, map, math, collapsible blocks — but sent by a bot via `sendRichMess
 | Streaming AI reply with "Thinking…" block | `sendRichMessageDraft` + `RichBlockThinking` |
 | Footnotes / anchor links | `RichTextReference` / `RichTextAnchorLink` |
 
-Plain `sendMessage` with `parse_mode: HTML` still covers bold/italic/code/spoiler/links
-for simple formatting. Move to `sendRichMessage` only when you need structural blocks.
+**Stay on classic `sendMessage` when:**
+
+| Need | Why classic wins |
+|---|---|
+| Bold, italic, code, spoiler and links only | `parse_mode: HTML` covers it |
+| Link preview under the post, or a chosen preview URL | `sendRichMessage` and `InputRichMessage` have no `link_preview_options` |
+| Custom emoji in a bot's channel post | The docs allow them in private, group and supergroup chats, or for bots with a Fragment username; see [Custom emoji](#custom-emoji) |
+| A message you will edit, with custom emoji | Rich edits can lose them; see [Known bugs](#known-bugs) |
 
 ---
 
@@ -65,7 +74,7 @@ Optional fields on `InputRichMessage`:
 |---|---|---|
 | `is_rtl` | Boolean | Render message right-to-left |
 | `skip_entity_detection` | Boolean | Disable auto-detection of URLs, emails, mentions, etc. |
-| `media` | InputRichMessageMedia[] | Resolve `tg://photo`, `tg://video`, and `tg://audio` references in markup |
+| `media` | InputRichMessageMedia[] | Resolve `tg://photo`, `tg://video`, `tg://document`, and `tg://audio` references in markup |
 
 ### Media bindings for HTML and Markdown
 
@@ -74,6 +83,7 @@ Reference media in markup:
 ```markdown
 ![](tg://photo?id=cover)
 ![](tg://video?id=demo)
+![](tg://document?id=report)
 ![](tg://audio?id=voice)
 ```
 
@@ -97,9 +107,9 @@ Media IDs are 1–64 characters using only letters, digits, `_`, and `-`. The ne
 `attach://` uploads and provide a file part with the same name.
 
 `InputRichMessageMedia.media` may be `InputMediaAnimation`, `InputMediaAudio`,
-`InputMediaPhoto`, `InputMediaVideo`, or `InputMediaVoiceNote`. Markup exposes three
-reference schemes: `photo`, `video`, and `audio`; animation travels through `video`, and
-voice note through `audio`.
+`InputMediaDocument`, `InputMediaPhoto`, `InputMediaVideo`, or `InputMediaVoiceNote`. Markup
+exposes four reference schemes: `photo`, `video`, `document`, and `audio`; animation travels
+through `video`, and voice note through `audio`.
 
 #### Captions and player metadata
 
@@ -148,14 +158,15 @@ failure names the offending id. Four checks, all cheap:
    a build error of your own.
 3. **The reference scheme matches the bound type.** `tg://audio?id=X` accepts `audio` or
    `voice_note`; `tg://video?id=X` accepts `video` or `animation`; `tg://photo?id=X` accepts
-   `photo`. A mismatch is a definite error.
+   `photo`; `tg://document?id=X` accepts `document`. A mismatch is a definite error.
 4. **Every `attach://<name>` has a matching file part**, and the file exists on disk.
 
 ```python
 import re
 
-REF = re.compile(r"tg://(photo|video|audio)\?id=([A-Za-z0-9_-]+)")
-ACCEPTS = {"photo": {"photo"}, "video": {"video", "animation"}, "audio": {"audio", "voice_note"}}
+REF = re.compile(r"tg://(photo|video|document|audio)\?id=([A-Za-z0-9_-]+)")
+ACCEPTS = {"photo": {"photo"}, "video": {"video", "animation"}, "document": {"document"},
+           "audio": {"audio", "voice_note"}}
 
 def check(markup: str, media: list[dict]) -> None:
     bound = {item["id"]: item["media"]["type"] for item in media}
@@ -306,9 +317,11 @@ that failed with a definite 4xx.
 | `mathematical_expression` | `<tg-math-block>` | Block LaTeX formula | `expression: string` |
 | `list` | `<ul>` / `<ol>` | Ordered or unordered list | `items: RichBlockListItem[]` |
 | `blockquote` | `<blockquote>` | Block quotation | `blocks: RichBlock[]`, `credit?: RichText` |
+| `expandable_blockquote` | `<blockquote expandable>` | Collapsible quotation (10.3) | `text: RichText`, `credit?: RichText` |
 | `pullquote` | `<aside>` | Centered pull quote | `text`, `credit?: RichText` |
 | `details` | `<details>` | Collapsible section | `summary: RichText`, `blocks: RichBlock[]`, `is_open?: true` |
-| `table` | `<table>` | Data table | `cells: RichBlockTableCell[][]`, `is_bordered?`, `is_striped?`, `caption?: RichText` |
+| `table` | `<table>` | Data table | `cells: RichBlockTableCell[][]`, `is_bordered?`, `is_striped?`, `is_compact?`, `caption?: RichText` |
+| `buttons` | `<tg-button-row>` | One row of buttons (10.3) | `buttons: RichMessageButton[]`, `align?` |
 | `map` | `<tg-map>` | Static embedded map | `location: Location`, `zoom: 0–24`, `width`, `height`, `caption?` |
 | `collage` | `<tg-collage>` | Photo/video grid | `blocks: RichBlock[]`, `caption?: RichBlockCaption` |
 | `slideshow` | `<tg-slideshow>` | Swipeable photo/video deck | `blocks: RichBlock[]`, `caption?: RichBlockCaption` |
@@ -317,6 +330,7 @@ that failed with a definite 4xx.
 | `animation` | `<video>` (gif) | Animation / GIF block | `animation: Animation`, `has_spoiler?: true`, `caption?` |
 | `audio` | `<audio>` (mp3) | Audio / music block | `audio: Audio`, `caption?` |
 | `voice_note` | `<audio>` (ogg) | Voice message block | `voice_note: Voice`, `caption?` |
+| `document` | `<tg-document>` | General file block (10.3) | `document: Document`, `caption?` |
 | `thinking` | `<tg-thinking>` | "Thinking…" placeholder **(draft only)** | `text: RichText` |
 
 > **`thinking` is only valid in `sendRichMessageDraft`.** It cannot appear in `sendRichMessage` and is never stored in a Message.
@@ -412,12 +426,14 @@ Content here.
 
 | Limit | Value |
 |---|---|
-| Max UTF-8 characters (text, alt-text, formulas) | **32 768** |
-| Max blocks (including nested: list items, table rows, blockquote/details blocks) | **500** |
-| Max nesting levels | **16** |
-| Max media attachments (photos, videos, audio) | **50** |
+| Max UTF-8 characters, including custom emoji alternative text and formula source | **32 768** |
+| Max blocks, including nested blocks, list items, table rows, quotation and details blocks | **500** |
+| Max levels of nested formatting and blocks | **16** |
+| Max media attachments in total | **50** |
 | Max table columns | **20** |
+| Buttons in one `buttons` block | **1–8** |
 | Map zoom range | **0–24** |
+| Map `width` + `height`, ratio | **10 000** in total, ratio at most **20** |
 
 ### Critical constraints
 
@@ -426,7 +442,8 @@ Content here.
 **Markup media has two source paths.**
 - Media must be specified as separate blocks, not inline in text.
 - Direct HTTP/HTTPS media URLs work without `media`.
-- `tg://photo?id=`, `tg://video?id=`, and `tg://audio?id=` require a matching entry in `media`.
+- `tg://photo?id=`, `tg://video?id=`, `tg://document?id=`, and `tg://audio?id=` require a
+  matching entry in `media`.
 - Each bound `InputMedia*.media` accepts `file_id`, HTTP/HTTPS URL, or multipart `attach://`.
 - Direct URL media type is inferred from MIME type and URL extension. Bound media type comes
   from the nested `InputMedia*` object.
@@ -456,6 +473,51 @@ The 500-block limit counts every `RichBlockListItem`, every table row, every blo
 `blocks` can mix `photo` and `video` blocks. Both may also be placed inside a `details`
 block as collapsible media.
 
+**No link preview control.**
+`sendRichMessage` and `InputRichMessage` have no `link_preview_options`.
+
+### Custom emoji
+
+The formatting rules allow custom emoji for bots that purchased additional usernames on
+Fragment, or in messages the bot sends directly to private, group and supergroup chats when its
+owner has Telegram Premium. Channels aren't named in the second case. Without a Fragment
+username, plan a channel post without custom emoji. Rich messages from a bot to a channel with
+custom emoji were not tested live for this skill.
+
+### Inline, guest and Web App results
+
+`InputRichMessageContent` carries a rich message as a result of an inline query, a guest query
+or a Web App query. It has one field, `rich_message`. Only previously uploaded files may be used
+in it, so bind media by `file_id`:
+
+```json
+{
+  "type": "article",
+  "id": "report-1",
+  "title": "Weekly report",
+  "input_message_content": {
+    "rich_message": {"markdown": "## Weekly report\n\n![](tg://photo?id=cover)",
+                     "media": [{"id": "cover", "media": {"type": "photo", "media": "AgAC...file_id"}}]}
+  }
+}
+```
+
+### Known bugs
+
+Practitioner reports, status checked on 2026-10-30. Details:
+[reference](../../reference/rich-messages-spec.md#known-bugs).
+
+- **Custom emoji lost on edit.** `editMessageText` with `rich_message` returns `ok: true` and
+  drops custom emoji: [tdlib #865](https://github.com/tdlib/telegram-bot-api/issues/865)
+  (2026-07-04), [#904](https://github.com/tdlib/telegram-bot-api/issues/904) in supergroups when
+  the original isn't a reply (2026-09-28), [#880](https://github.com/tdlib/telegram-bot-api/issues/880)
+  for inline messages in groups and channels (2026-07-30). All open. Check the edited message in
+  a real client, or resend instead of editing.
+- **`chosen_inline_result` without `inline_message_id`** when the result uses
+  `InputRichMessageContent` with rich buttons:
+  [tdlib #895](https://github.com/tdlib/telegram-bot-api/issues/895) (2026-08-28, open). Take the
+  id from the callback query of those buttons.
+
 ---
 
 ## Common mistakes
@@ -465,13 +527,13 @@ block as collapsible media.
 | Passing an array directly as `rich_message` | Wrap it as `{"blocks":[...]}` |
 | Using `tg://...id=cover` without `media` | Add an `InputRichMessageMedia` with `id: "cover"` |
 | Leaving a bound id that markup no longer references | Drop the binding — an unused one is an editing slip, not a no-op |
-| Binding `voice_note` behind `tg://video?id=` | Match the scheme: `photo`→photo, `video`→video/animation, `audio`→audio/voice_note |
+| Binding `voice_note` behind `tg://video?id=` | Match the scheme: `photo`→photo, `video`→video/animation, `document`→document, `audio`→audio/voice_note |
 | Sending `attach://cover` in JSON only | Switch the request to multipart/form-data and add the `cover` file part |
 | Nesting the multipart form fields as JSON objects | Every non-file field is a string: `json.dumps(rich_message)` in one form field |
 | Putting the caption in `InputMedia*.caption` of a binding | Captions come from markup — the image title argument or `<figcaption>` |
 | Shipping audio bindings without `duration`/`title` | The inline player shows an unlabelled blob; set the metadata on the binding |
 | Retrying a `sendRichMessage` that timed out | Outcome is unknown — retrying duplicates the post; resolve it before resending |
-| Putting an `InputMedia*` caption inside a direct media block | Put the caption on `InputRichBlockPhoto` / `Video` / `Audio` |
+| Putting an `InputMedia*` caption inside a direct media block | Put the caption on `InputRichBlockPhoto` / `Video` / `Audio` / `Document` |
 | Putting `<img>` or `<video>` inline in `<p>` | Move media to its own block, outside `<p>` |
 | Adding block elements inside `<td>` | Only inline tags inside table cells |
 | Using `RichBlockThinking` in `sendRichMessage` | `thinking` is valid only in `sendRichMessageDraft` |

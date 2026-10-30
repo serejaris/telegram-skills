@@ -6,4 +6,4 @@ Verify behavior against the official Telegram Bot API. Preserve untracked and un
 
 Use Beads (`bd prime`, `bd ready`, `bd update`, `bd close`) for durable work tracking. GitHub issues may expose the public outcome. Do not create markdown task lists. Commit and push only with active authorization; package registry publication is a separate action.
 
-Run relevant helper tests before publishing. Unknown delivery outcomes after timeouts or server errors must never be treated as proof of failure or retried blindly. Sending, editing, and live Telegram operations require the consumer's authorized target and delivery workflow.
+Run relevant helper tests before publishing: `uv run --no-project --python 3.13 --with cryptography python -m unittest discover -s skills/<name>/tests -p 'test_*.py'`, the same run as `.github/workflows/tests.yml`. Unknown delivery outcomes after timeouts or server errors must never be treated as proof of failure or retried blindly. Sending, editing, and live Telegram operations require the consumer's authorized target and delivery workflow.

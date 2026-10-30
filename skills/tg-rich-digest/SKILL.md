@@ -355,4 +355,4 @@ Rich Message rendering on older Telegram clients is **not documented by Telegram
 
 - [`../tg-rich-messages/SKILL.md`](../tg-rich-messages/SKILL.md) — complete block and inline type reference
 - [`../tg-markdown-to-rich/SKILL.md`](../tg-markdown-to-rich/SKILL.md) — convert existing Markdown into a rich message
-- [`../../reference/rich-messages-spec.md`](../../reference/rich-messages-spec.md) — canonical API spec (Bot API 10.2)
+- [`../../reference/rich-messages-spec.md`](../../reference/rich-messages-spec.md) — canonical API spec (Bot API 10.3)
