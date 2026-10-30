@@ -62,6 +62,9 @@ Then ask your agent — e.g. *"send this report to my Telegram channel as a rich
 | [`tg-polls`](skills/tg-polls/) | Polls and quizzes from a bot or a user account: text + poll in one message via description, media, 12 options, all poll settings and limits |
 | [`tg-rich-digest`](skills/tg-rich-digest/) | Digest and channel-article patterns: flat layout, preview + collapsed full version, media as evidence, preflight gate |
 | [`tg-stars-payments`](skills/tg-stars-payments/) | Sell digital goods for Stars from a bot or Mini App: invoices, pre-checkout, exactly-once crediting by `telegram_payment_charge_id`, refunds, subscriptions, paid media, dated payout figures |
+| [`tg-classic-messages`](skills/tg-classic-messages/) | Ordinary bot messages: limits, HTML and MarkdownV2 escaping, quotes, `date_time`, link previews, captions, albums, upload sizes, editing and deleting; when to choose rich instead |
+| [`tg-capability-map`](skills/tg-capability-map/) | What a bot can do, what lives only in the client or MTProto, and what not to promise; every row dated with an address |
+| [`tg-bot-ops`](skills/tg-bot-ops/) | Running a bot: webhook or polling, `allowed_updates`, secret token, 429 and `retry_after`, file retries, lost and poison updates, `t.me` outages, local server |
 
 ## Reference
 
