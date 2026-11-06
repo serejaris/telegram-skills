@@ -97,6 +97,16 @@ What a real iPhone accepted on 2026-11-06, with desktop numbers measured at 4x C
 - Generate instead of storing: a seed saved in `localStorage` gives each viewer a different scene from the same code.
 - Use a 16:9 frame: height is `round(width * 9 / 16)`, set from JS.
 
+## 3D without WebGL
+
+Project triangles yourself and paint them back to front on a canvas. A low-poly aquarium fit in 4 KB at under 1800 canvas calls a frame.
+
+- Rotate by camera yaw and tilt, divide by depth, sort by mean depth, fill flat-shaded triangles.
+- Precompute static triangles and their shade; project them every frame.
+- Force large base geometry (floor, stand) to draw first with a depth bias: sorting by mean depth fails on big triangles.
+- Cache colour strings per shade level rather than building them for every triangle.
+- Prefer one horizontal drag for the camera and a tap for the action, and tell them apart by distance moved.
+
 ## Games
 
 Examples above are survivors-genre games under 4 KB. Horizontal drags need `touch-action: pan-y`, vertical drags belong to the chat, and `pointercancel` must stop the action. On a low frame rate, make projectiles slower with a larger hit radius.
