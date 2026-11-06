@@ -1,74 +1,145 @@
 ---
 name: tg-widgets
-description: "Use when building or sending a Telegram message widget (HTML bubble, HTMLBubbles, `sendWidget`, `messageMediaWidget`, Bot API 10.4): an interactive HTML, CSS and JS program inside a chat bubble, such as a game, poll, calculator or live ticker. Follows Telegram's own widget-sandbox documentation and records where live delivery differs from it. Not for Mini Apps or Rich Messages."
+description: "Use when building or sending a Telegram message widget (HTML bubble, HTMLBubbles, `sendWidget`, `messageMediaWidget`, Bot API 10.4): an interactive HTML, CSS and JS program inside a chat bubble, such as a game, 3D scene, poll, calculator or live ticker. Teaches everything needed to write one: size, bubble, input, sandbox rules, state and requests, 3D on canvas, sending, and where live delivery differs from the documentation. Not for Mini Apps or Rich Messages."
 license: MIT
 ---
 
 # tg-widgets
 
-A widget is one self-contained HTML document that a bot sends as a message. It runs in the chat bubble with no window, no server and no network.
+A widget is one self-contained HTML document with inline CSS and JS. A bot sends it as a message, and it runs in the chat bubble with no window, no server and no network. The HTML never changes after sending; only the bot changes the widget's state.
 
-Telegram's repository [`TelegramMessenger/widget-sandbox`](https://github.com/TelegramMessenger/widget-sandbox) is the source of truth. This skill points to it and adds only what a live check showed. Telegram has not announced widgets, the public Bot API docs stop at 10.3, and names may change until 10.4 ships. Checked against v0.6.0 on 2026-11-06.
-
-## Read first
-
-Read the current version before writing code. The repository has no license file, so this skill links to it and does not copy it.
-
-| Need | File in `docs/` |
-|---|---|
-| Rules for writing a widget. The section "Agent block" stands alone: use it as your instructions | [`widget-runtime-profile.md`](https://raw.githubusercontent.com/TelegramMessenger/widget-sandbox/main/docs/widget-runtime-profile.md) |
-| `TelegramWidget` API: state, requests, links, haptics, wallet | [`sdk-v1.md`](https://raw.githubusercontent.com/TelegramMessenger/widget-sandbox/main/docs/sdk-v1.md) |
-| Sending, size limits, errors, Bot API names | [`tgw-format.md`](https://raw.githubusercontent.com/TelegramMessenger/widget-sandbox/main/docs/tgw-format.md) |
-| Every CSS, HTML and JS feature, in or out | [`profile-v1.md`](https://raw.githubusercontent.com/TelegramMessenger/widget-sandbox/main/docs/profile-v1.md) |
-
-Starting points from the same repository: `corpus/interactive` (poll, tic-tac-toe, live ticker, promo code) and `corpus/bot-demos` with its bot `scripts/bot-demos.ts`.
+Everything needed to write a widget is below. The rules follow Telegram's [`widget-sandbox`](https://github.com/TelegramMessenger/widget-sandbox) documentation, v0.6.0, checked on 2026-11-06. Telegram has not announced widgets, the public Bot API docs stop at 10.3, and names may change until 10.4 ships. For a detail not covered here, see `docs/sdk-v1.md` and `docs/profile-v1.md` in that repository.
 
 ## Steps
 
-1. Read the Agent block.
-2. Write the widget. Anything outside the profile is removed silently while the rest keeps running, so check each feature you rely on.
-3. Measure as the server does:
+1. Write the widget by the rules below.
+2. Measure as the server does:
 
    ```bash
    python3 scripts/widget_tool.py check widget.html
    ```
 
-4. Optional: run Telegram's harness from a clone of the repository. It prints what the profile removed and who gets each press. Review the code before running it. This skill has not run it.
-
-   ```bash
-   corepack pnpm tsx packages/core/scripts/sandbox-node.ts widget.html --width 360
-   ```
-
-5. Send to your private chat with the bot. The tool sends once and never retries: after a timeout the message may already be delivered.
+3. Send it to your private chat with the bot. The tool sends once and never retries: after a timeout the message may already be delivered.
 
    ```bash
    TELEGRAM_BOT_TOKEN=... python3 scripts/widget_tool.py send widget.html --chat CHAT_ID --caption "Tap the water to feed"
    ```
 
-6. Open it on a phone. A successful `sendWidget` proves only that the server accepted it: clients below layer 233 show an unsupported-media stub with the caption, so write a caption that makes sense alone.
+4. Open it on a phone. A successful `sendWidget` proves only that the server accepted it: clients below layer 233 show an unsupported-media stub with the caption, so write a caption that makes sense alone.
 
-## Limits
+## Size
 
-From the documentation. The Agent block has the full list.
+The server compresses the HTML with zlib level 9 and refuses anything over 4096 bytes, or over 32768 bytes raw, with `INPUT_MEDIA_WIDGET_TOO_LARGE`. Aim for 3800 if you cannot measure.
 
-| Limit | Value |
-|---|---|
-| HTML | 32768 bytes |
-| After zlib level 9 | 4096 bytes; aim for 3800 if you cannot measure |
-| Bubble | 200–600 px wide, phones about 320–430; up to 600 px tall, the rest is clipped, nothing scrolls |
-| CPU | 300 ms per second, one task up to 500 ms |
-| Memory, nodes | 8 MB, 2000 nodes |
-| Canvas | 4000 commands per canvas per task, 2048×2048 pixels in total |
-| Paint | 16 elements with blur, filter or opacity below 1 |
-| `localStorage` | 4 KB per message, per device |
-| `chat_data`, `public_data` | 1024 bytes of text each |
-| Request from the widget | 1–64 bytes, the answer up to 1024 bytes |
+- Repeated CSS and markup compress well. `data:` images and long unique text do not.
+- Non-ASCII text compresses badly: cutting Russian strings saved more than renaming identifiers.
+- Generate scenes in code instead of storing them.
+- No comments, no dead code. Minify with terser.
 
-Not available: network, WebGL, libraries, video, audio, form controls, keyboard, `vh`, inner scrolling, `text-shadow`, 3D CSS transforms, `shadowBlur`, `globalCompositeOperation`, `getImageData`, `alert`. `window.TelegramWidget` is undefined outside Telegram, so guard it.
+## Bubble
+
+- 200–600 px wide, phones about 320–430: design for 320. Up to 600 px tall; the rest is clipped and nothing scrolls inside. Split long content into pages or tabs.
+- `width` and `height` in `sendWidget` set the size, `0` means auto. Lay out with `%`, flex, grid or `vw`, never `vh`.
+- `html` has no background: the bubble's colour shows through, and a background on `html` or `body` paints the whole bubble. `body` has a margin of about `8px 12px`; `body{margin:0}` goes edge to edge.
+- Colours: `--tg-theme-bg-color`, `--tg-theme-text-color`, `--tg-theme-hint-color`, `--tg-theme-link-color`, `--tg-theme-button-color`, `--tg-theme-button-text-color`, `--tg-theme-secondary-bg-color`; `--tg-color-scheme` is light or dark. Build on them so both themes work, or paint the whole bubble yourself.
+- Without a caption below, the client draws the message time over the bottom corner. Keep `env(safe-area-inset-bottom)` clear, and set `body{padding:0}` if you pad for it yourself.
+- Text is not selectable unless you set `user-select:text` and `-webkit-user-select:text`.
 
 ## Input
 
-Vertical drags belong to the chat, whatever `touch-action` says. A canvas or game control takes `touch-action: none`, a horizontal slider takes `pan-y`, everything else stays `auto`. The first 10 px decide the whole press: a drag that starts sideways on a claimed element stays with the widget on both axes, and one that starts up or down goes to the chat. On `pointercancel`, undo what `pointerdown` started.
+Taps (`click`) and pointer events only. No touch events, keyboard, focus, text input, wheel or scroll events. A double tap is always the widget's.
+
+Vertical drags belong to the chat, whatever `touch-action` says. So no vertical sliders, wheel pickers or free drawing: use horizontal controls or buttons.
+
+| `touch-action` on the element | Use for | Hold | Horizontal drag |
+|---|---|---|---|
+| `auto` (default) | everything else | chat's message menu | chat's swipe-to-reply |
+| `pan-y` | slider, carousel, paddle | chat's menu | widget's |
+| `none` | canvas, game control, held button | widget's | widget's |
+
+The first move past 10 px decides the whole press: a drag that starts sideways on a claimed element stays with the widget on both axes, and one that starts up or down goes to the chat, and the widget gets `pointercancel` and no `click`. On `pointercancel`, undo what `pointerdown` started. The leading 20 px never take a claim because of the system back gesture: keep controls away from that edge.
+
+## What works
+
+- **HTML:** text elements, lists, tables, `details`, `a`, `button` (unstyled, it looks like the client's own), `canvas`, `img` with `data:` PNG, JPEG, GIF or WebP up to 1024×1024, inline SVG with shapes, paths, text, `use` and gradients.
+- **CSS:** flex, grid, positioning, shadows, gradients, 2D transforms, `opacity`, `filter` and `backdrop-filter` with `blur()`, `brightness()` and `drop-shadow()` only, transitions, `@keyframes`, custom properties, `calc`, `@media` on width, `prefers-color-scheme`, `@supports`. Fonts: `system-ui`, `sans-serif`, `serif`, `monospace`, `ui-*` only.
+- **JS:** ES2023 in an interpreter without JIT, timers, `requestAnimationFrame`, the DOM, canvas 2D (paths, arcs, `fillText`, gradients, `setTransform`, `clip`, `drawImage`), `el.animate`, `Intl`, `crypto.getRandomValues`, `localStorage`, `sessionStorage`. Use `document.getElementById('x')`: ids are not global variables.
+
+## Not available
+
+Removed silently while the rest keeps running, so a removed feature is a bug you will not see.
+
+- **Network:** `fetch`, `XMLHttpRequest`, `WebSocket` throw `NetworkDisabledError`; nothing external loads.
+- **Canvas:** WebGL, `OffscreenCanvas`, `getImageData`, `putImageData`, `createImageData`, `toDataURL`, `shadowBlur`, `globalCompositeOperation`, `ctx.filter`, `createPattern` from a canvas.
+- **CSS:** 3D transforms, `perspective`, `vh`, `overflow:auto|scroll`, `position:sticky`, `text-shadow`, `clip-path`, `mask`, `mix-blend-mode`, `background-clip:text`, `color-mix`, `oklch`, `@font-face`, named fonts, `@container`, `:has`, CSS nesting.
+- **HTML:** form controls, `audio`, `video`, `iframe`, `dialog`, `progress`.
+- **JS:** libraries, `Worker`, `alert`, `confirm`, `navigator.clipboard`, `window.open`, `location` changes, `Blob`, `customElements`.
+
+## `TelegramWidget`
+
+`window.TelegramWidget` is undefined outside Telegram, so guard it.
+
+| Member | Purpose |
+|---|---|
+| `ready()` | optional, first state drawn |
+| `colorScheme`, `themeParams`, `onEvent('themeChanged', fn)` | theme |
+| `HapticFeedback.impactOccurred('light')`, `.notificationOccurred('success')`, `.selectionChanged()` | haptics: free during a touch and 5 s after it, otherwise one short series per 10 s |
+| `openLink(url)`, `openTelegramLink(url)`, `copyText(text)`, `request(data)` | need a real tap: call in a `click` handler, one per tap, not after `await` or a timer |
+| `chatData`, `publicData`, `onEvent('chatDataChanged', fn)`, `onEvent('publicDataChanged', fn)` | state written by the bot, up to 1024 bytes of text or `null` |
+| `watchPublicData()` | poll the shared state live while on screen |
+| `viewer`, `isForward`, `chatType`, `isPreview` | who looks and where; `viewer` is `null` where the widget may not ask the bot |
+| `wallet` | Gram Wallet; `null` where unavailable. See `docs/sdk-v1.md` §2.18 |
+
+## State and requests
+
+- `chatData` belongs to this message in its chat: a game in progress, whose turn it is. A forward never gets it.
+- `publicData` is seen wherever the widget is shown: poll results, a price. A forward gets a frozen copy, or the live value if the bot sent the widget with `is_shared`.
+- `localStorage` is this user's own, per message and device, 4 KB; catch `QuotaExceededError`. Use it for a best score or a seed.
+- `request(data)` works like a callback button: 1–64 bytes, resolves with `{result}` up to 1024 bytes, rejects with `error.code`: `NOT_ALLOWED`, `BUSY`, `RATE_LIMITED`, `TIMEOUT`, `FAILED`, `INVALID_ANSWER`. It needs `allow_queries` at sending. The answer does not change the state: have the bot edit it, or return the new state in `result`.
+
+## Lifecycle and limits
+
+The widget can be destroyed and recreated at any time: restore from `localStorage` and the state, and draw the first frame synchronously. Off screen there are no animation frames and timers fire at most once per second.
+
+| Limit | Value |
+|---|---|
+| CPU | 300 ms per second; one task up to 500 ms, longer stops the widget |
+| Memory, nodes | 8 MB, 2000 nodes |
+| Canvas | 4000 commands per canvas per task, 2048×2048 pixels in total |
+| Paint | 16 elements with blurred shadow, filter or opacity below 1; 2 with `backdrop-filter`. Mute with colour instead of `opacity` |
+| Layout reads | 128 per task; cache them and never read every frame |
+| Other | 64 timers, 400 CSS rules, 32 `@keyframes`, 64 script animations |
+
+Past a limit the widget stops on its last frame with a "Widget stopped" badge.
+
+## Skeleton
+
+```html
+<style>body{margin:0}canvas{display:block;width:100%;touch-action:none;image-rendering:pixelated}</style>
+<canvas id="c"></canvas>
+<script>
+const T=window.TelegramWidget,c=document.getElementById('c'),x=c.getContext('2d');
+const W=c.clientWidth||360,H=Math.round(W*9/16),S=3;
+c.style.height=H+'px';c.width=W/S|0;c.height=H/S|0;
+let last=0;
+function frame(t){requestAnimationFrame(frame);if(t-last<33)return;last=t;
+  x.fillStyle='#024';x.fillRect(0,0,c.width,c.height)}
+c.addEventListener('click',e=>{const r=c.getBoundingClientRect();
+  T&&T.HapticFeedback.selectionChanged()});
+requestAnimationFrame(frame);T&&T.ready();
+</script>
+```
+
+## 3D without WebGL
+
+Project triangles yourself and paint them back to front on a canvas. A low-poly aquarium fit in 4 KB at under 1800 canvas commands a frame. Size is the only thing checked: its speed on a phone is not confirmed, so open it on one early.
+
+- Rotate by camera yaw and tilt, divide by depth, sort by mean depth, fill flat-shaded triangles.
+- Precompute static triangles and their shade; project them every frame.
+- Force large base geometry (floor, stand) to draw first with a depth bias: sorting by mean depth fails on big triangles.
+- Cache colour strings per shade level instead of building them for every triangle.
+- Run at about 30 fps and keep per-frame work small: there is no JIT.
+- Use one horizontal drag for the camera (`touch-action:pan-y`) and a tap for the action, and tell them apart by distance moved.
 
 ## Delivery: documentation and live check
 
@@ -97,11 +168,9 @@ To put a widget in front of a channel audience today, publish a post with a vide
 | `editSharedWidgetData` | change the state of a shared widget everywhere, `cache_time` 5–3600 s |
 | `answerWidgetQuery` | answer the `widget_query` or `shared_widget_query` update, always, or the widget gets `TIMEOUT` |
 
-The HTML never changes after sending. Only the bot changes the state.
-
 ## Examples
 
-`examples/` holds widgets built with this skill and opened on an iPhone. They are not official and show one author's look. Sizes after zlib level 9:
+`examples/` holds widgets built with this skill and opened on an iPhone. They show one author's look. Sizes after zlib level 9:
 
 | File | Bytes |
 |---|---|
