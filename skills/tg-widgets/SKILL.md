@@ -113,6 +113,6 @@ Examples above are survivors-genre games under 4 KB. Horizontal drags need `touc
 
 ## Getting a widget into a channel
 
-Direct sending, forwarding, inline mode and the channel's discussion group all fail live (2026-11-06), so a post in a channel cannot carry a widget today. The working alternatives are a post with a video and a `t.me/<bot>?start=...` link that sends the widget in the private chat, or a group, where a bot may send it directly.
+Direct sending, forwarding, inline mode, a supergroup and the channel's discussion group all fail live (2026-11-06), so neither a channel post nor a group can carry a widget today. The working alternative is a post with a video and a `t.me/<bot>?start=...` link that sends the widget in the private chat.
 
 Before announcing widgets as a feature of your channel, send one to your own phone and check it.
