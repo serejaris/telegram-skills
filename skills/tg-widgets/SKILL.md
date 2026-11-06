@@ -77,19 +77,29 @@ Use `--tg-theme-*` CSS variables or paint the whole bubble yourself. `window.Tel
 - Repeated code compresses well, unique data does not. Generate scenes procedurally.
 - Run logic and drawing at about 30 fps and keep under 2000 canvas commands a frame. JS runs in an interpreter without JIT.
 
-## 3D without WebGL
+## Look and speed
 
-Project triangles yourself and paint them back to front on a canvas. This fits in 4 KB: see [`examples/aquarium-lowpoly.html`](examples/aquarium-lowpoly.html), under 1800 canvas calls a frame, drawn at about 30 fps.
+What a real iPhone accepted on 2026-11-06, with desktop numbers measured at 4x CPU throttle:
 
-- Rotate by camera yaw and tilt, divide by depth, sort by mean depth, fill flat-shaded triangles.
-- Precompute static triangles and their shade; project them every frame.
-- Force large base geometry (floor, stand) to draw first with a depth bias: sorting by mean depth fails on big triangles.
-- Cache colour strings per shade level rather than building them for every triangle.
-- Prefer one horizontal drag for the camera and a tap for the action, and tell them apart by distance moved.
+| Approach | Result on the phone | Example |
+|---|---|---|
+| Low-resolution canvas (one pixel = 3 CSS px, `image-rendering: pixelated`), ordered dithering, palette ramps | smooth, liked | [`examples/aquarium-pixel.html`](examples/aquarium-pixel.html), [`examples/night-deploy-pixel.html`](examples/night-deploy-pixel.html) |
+| Grid of glyphs on canvas, about 44 columns, runs of `fillRect` + `fillText` | works, liked | [`examples/textmode-panel.html`](examples/textmode-panel.html), [`examples/night-deploy-textmode.html`](examples/night-deploy-textmode.html) |
+| Full-resolution vector canvas with gradients | laggy, disliked | none |
+| ASCII in 7 stacked `<pre>` layers, 76 columns | laggy, layers went missing; cause unknown | none |
+
+- A desktop throttle test does not predict the phone: the 7-layer `<pre>` version looked fine on desktop. Check on a phone.
+- Size is `zlib.compress(html, 9)`. Use terser and nothing else: RegPack came out larger after zlib, and unpacking with Roadroller takes seconds.
+- Draw text with a 5×5 bitmap font on a pixel canvas: a system font breaks the look. Keep only the glyphs you use.
+- Draw Cyrillic one glyph per cell on a glyph grid: the fallback font may not be monospaced.
+- Paint static backgrounds once on their own canvas and redraw only the moving layer.
+- `drawImage` from a canvas outside the DOM works on iOS, so a sprite atlas costs one call per sprite.
+- Generate instead of storing: a seed saved in `localStorage` gives each viewer a different scene from the same code.
+- Use a 16:9 frame: height is `round(width * 9 / 16)`, set from JS.
 
 ## Games
 
-[`examples/night-deploy-survivor.html`](examples/night-deploy-survivor.html) is a survivors-genre game in 3.8 KB: auto-fire, enemy waves, level-up choices, a boss at 60 s. The hero walks to a tap or follows a finger, because vertical drags belong to the chat and a virtual stick cannot work. On `pointercancel`, stop the move. Ignore taps for 0.3 s after showing choice cards, so a finger already down does not pick one.
+Examples above are survivors-genre games under 4 KB. Horizontal drags need `touch-action: pan-y`, vertical drags belong to the chat, and `pointercancel` must stop the action. On a low frame rate, make projectiles slower with a larger hit radius.
 
 ## Getting a widget into a channel
 
