@@ -87,6 +87,10 @@ Project triangles yourself and paint them back to front on a canvas. This fits i
 - Cache colour strings per shade level rather than building them for every triangle.
 - Prefer one horizontal drag for the camera and a tap for the action, and tell them apart by distance moved.
 
+## Games
+
+[`examples/night-deploy-survivor.html`](examples/night-deploy-survivor.html) is a survivors-genre game in 3.8 KB: auto-fire, enemy waves, level-up choices, a boss at 60 s. The hero walks to a tap or follows a finger, because vertical drags belong to the chat and a virtual stick cannot work. On `pointercancel`, stop the move. Ignore taps for 0.3 s after showing choice cards, so a finger already down does not pick one.
+
 ## Getting a widget into a channel
 
 Direct sending and forwarding fail, so a post in a channel cannot carry a widget today except possibly through inline mode (docs only, not tested). The working alternatives are a post with a video and a `t.me/<bot>?start=...` link that sends the widget in the private chat, or a group, where a bot may send it directly.
