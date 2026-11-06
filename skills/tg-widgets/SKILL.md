@@ -1,6 +1,6 @@
 ---
 name: tg-widgets
-description: "Use when building or sending a Telegram message widget (HTML bubble, HTMLBubbles, `sendWidget`, `messageMediaWidget`, Bot API 10.4): an interactive HTML, CSS and JS program inside a chat bubble, such as a game, 3D scene, poll, calculator or live ticker. Teaches everything needed to write one: size, bubble, input, sandbox rules, state and requests, 3D on canvas, sending, and where live delivery differs from the documentation. Not for Mini Apps or Rich Messages."
+description: "Use when building or sending a Telegram message widget (HTML bubble, HTMLBubbles, `sendWidget`, `messageMediaWidget`, Bot API 10.4): an interactive HTML, CSS and JS program inside a chat bubble, such as a game, poll, calculator or live ticker. Teaches everything needed to write one: size, bubble, input, sandbox rules, state and requests, sending, and where live delivery differs from the documentation. Not for Mini Apps or Rich Messages."
 license: MIT
 ---
 
@@ -129,17 +129,6 @@ c.addEventListener('click',e=>{const r=c.getBoundingClientRect();
 requestAnimationFrame(frame);T&&T.ready();
 </script>
 ```
-
-## 3D without WebGL
-
-Project triangles yourself and paint them back to front on a canvas. A low-poly aquarium fit in 4 KB at under 1800 canvas commands a frame. Size is the only thing checked: its speed on a phone is not confirmed, so open it on one early.
-
-- Rotate by camera yaw and tilt, divide by depth, sort by mean depth, fill flat-shaded triangles.
-- Precompute static triangles and their shade; project them every frame.
-- Force large base geometry (floor, stand) to draw first with a depth bias: sorting by mean depth fails on big triangles.
-- Cache colour strings per shade level instead of building them for every triangle.
-- Run at about 30 fps and keep per-frame work small: there is no JIT.
-- Use one horizontal drag for the camera (`touch-action:pan-y`) and a tap for the action, and tell them apart by distance moved.
 
 ## Delivery: documentation and live check
 
