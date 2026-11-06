@@ -139,7 +139,7 @@ The documentation allows more than the live API accepted. Live means real reques
 | `api.telegram.org/bot<token>/sendWidget` | beta path only | 404 |
 | `api.telegram.org/beta/bot<token>/sendWidget` | works | works with a normal token |
 | Private chat with the bot | allowed | works, rendered on an iPhone |
-| Group or supergroup with the bot | allowed | supergroup and a channel's discussion group refused: `INPUT_MEDIA_WIDGET_NOT_ALLOWED`. Basic group not checked |
+| Group or supergroup with the bot | allowed | supergroup and a channel's discussion group refused: `INPUT_MEDIA_WIDGET_NOT_ALLOWED` |
 | Channel, direct | not allowed yet | refused, same error |
 | Inline mode | allowed | refused in a channel, and for a query from the private chat with the bot |
 | `forwardMessage` | allowed to any chat | refused: `the message can't be forwarded` |
