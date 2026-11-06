@@ -9,7 +9,7 @@
       "name": "telegram-skills",
       "source": "./",
       "description": "Telegram Bot API 10.3 Rich Messages skills: send outgoing blocks, uploaded media, structured documents, streaming AI replies, polls with description and media, and rewrite agent replies for non-engineers",
-      "version": "1.5.0",
+      "version": "1.6.0",
       "license": "MIT"
     }
   ]

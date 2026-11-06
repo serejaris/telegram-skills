@@ -62,6 +62,7 @@ Then ask your agent — e.g. *"send this report to my Telegram channel as a rich
 | [`tg-polls`](skills/tg-polls/) | Polls and quizzes from a bot or a user account: text + poll in one message via description, media, 12 options, all poll settings and limits |
 | [`tg-rich-digest`](skills/tg-rich-digest/) | Digest and channel-article patterns: flat layout, preview + collapsed full version, media as evidence, preflight gate |
 | [`tg-reply-rewrite`](skills/tg-reply-rewrite/) | Rewrite a raw agent reply for a non-engineer on a phone: what happened and how urgent, what it means, a ready sentence to send back, every fact unchanged |
+| [`tg-widgets`](skills/tg-widgets/) | Interactive HTML message widgets (HTML bubbles, `sendWidget`): delivery matrix checked live, 4 KB limit, sandbox rules, 3D and games on canvas |
 
 ## Reference
 
