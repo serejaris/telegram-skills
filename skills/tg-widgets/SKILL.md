@@ -19,11 +19,11 @@ Each fact below is marked **live** (a real request on 2026-11-06, one production
 | `https://api.telegram.org/bot<token>/sendWidget` | 404, the method does not exist on the public path | live |
 | `https://api.telegram.org/beta/bot<token>/sendWidget` | works with a normal production token | live |
 | Private chat with the bot | works, confirmed rendering on an iOS phone | live |
-| Basic group or supergroup with the bot | allowed, needs the right to send media | docs |
+| Supergroup with the bot as admin, also a channel's discussion group | `INPUT_MEDIA_WIDGET_NOT_ALLOWED` | live, 2026-11-06; docs say allowed |
 | Channel, direct | `INPUT_MEDIA_WIDGET_NOT_ALLOWED` | live |
 | `forwardMessage` to anywhere, also with `is_shared` | `the message can't be forwarded`; the sent message has `has_protected_content: true` even with `protect_content: false` | live, contradicts docs |
 | `copyMessage` | refused | live, matches docs |
-| Inline mode, a person picks the result in any chat | allowed through `InputWidgetMessageContent` | docs |
+| Inline mode, `InputWidgetMessageContent` or `InputSharedWidgetMessageContent` | `answerInlineQuery` fails with `INPUT_MEDIA_WIDGET_NOT_ALLOWED` in a channel; the widget content also failed for the query from the private chat with the bot | live, 2026-11-06; docs say allowed |
 | User account (MTProto) | `INPUT_MEDIA_WIDGET_NOT_ALLOWED`, only bots may send | docs |
 
 A successful `sendWidget` proves the server accepted it. It does not prove anyone saw it: each client decides whether to render, and clients below layer 233 show an unsupported-media stub with the caption. So always write a caption that makes sense alone, and confirm on a real device.
@@ -93,6 +93,6 @@ Project triangles yourself and paint them back to front on a canvas. This fits i
 
 ## Getting a widget into a channel
 
-Direct sending and forwarding fail, so a post in a channel cannot carry a widget today except possibly through inline mode (docs only, not tested). The working alternatives are a post with a video and a `t.me/<bot>?start=...` link that sends the widget in the private chat, or a group, where a bot may send it directly.
+Direct sending, forwarding, inline mode and the channel's discussion group all fail live (2026-11-06), so a post in a channel cannot carry a widget today. The working alternatives are a post with a video and a `t.me/<bot>?start=...` link that sends the widget in the private chat, or a group, where a bot may send it directly.
 
 Before announcing widgets as a feature of your channel, send one to your own phone and check it.
