@@ -22,6 +22,7 @@ Not for messages to customers, digests of many events ([`tg-rich-digest`](../tg-
 8. **Escape `&`, `<`, `>` in every dynamic value.** Names come from users. One unescaped `<` and Telegram rejects the whole message with `400 can't parse entities`: the action happened, and the operator saw nothing.
 9. **The decision edits the card.** When the operator presses a button, edit the same message with `editMessageText`: the same card text, a footer line, and no decision buttons. One event stays one message in the chat.
 10. **What the bot knows about the person is a second block.** After one blank line: a count line, then past orders oldest first, each with its period and amount. Name where the knowledge ends (`in the bot`), so an empty history is not read as a new customer. Leave the current order out of the list. When the history cannot be read, omit the block: `none` is a claim, not a fallback.
+11. **In a private chat the person block can be a widget.** Send the person and their history as an HTML widget ([`tg-widgets`](../tg-widgets/)) and keep the whole text card as its caption: a client without widget support shows only the caption, so nothing may live in the widget alone. Groups refuse widgets today, see the delivery table in tg-widgets: there the card stays text. When the server refuses the widget, send the text card instead.
 
 ## Limits
 
