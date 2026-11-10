@@ -22,7 +22,7 @@ Not for messages to customers, digests of many events ([`tg-rich-digest`](../tg-
 8. **Escape `&`, `<`, `>` in every dynamic value.** Names come from users. One unescaped `<` and Telegram rejects the whole message with `400 can't parse entities`: the action happened, and the operator saw nothing.
 9. **The decision edits the card.** When the operator presses a button, edit the same message with `editMessageText`: the same card text, a footer line, and no decision buttons. One event stays one message in the chat.
 10. **What the bot knows about the person is a second block.** After one blank line: a count line, then past orders oldest first, each with its period and amount. Name where the knowledge ends (`in the bot`), so an empty history is not read as a new customer. Leave the current order out of the list. When the history cannot be read, omit the block: `none` is a claim, not a fallback.
-11. **In a private chat the person block can be a widget.** Send the person and their history as an HTML widget ([`tg-widgets`](../tg-widgets/)) and keep the whole text card as its caption: a client without widget support shows only the caption, so nothing may live in the widget alone. Groups refuse widgets today, see the delivery table in tg-widgets: there the card stays text. When the server refuses the widget, send the text card instead.
+11. **In a private chat the person block can be a widget.** Send the person, the current order and their history as an HTML widget ([`tg-widgets`](../tg-widgets/)). The caption carries the first line and only the facts the widget does not show: a client that draws widgets puts the caption right under the widget, and a repeated fact is read twice. A client without widget support shows only the caption, so its first line still names the outcome and the person. Give the widget a button only for an action the operator takes: no copy button for a value nobody pastes. Groups refuse widgets today, see the delivery table in tg-widgets: there the card stays text. When the server refuses the widget, send the full text card instead.
 
 ## Limits
 
@@ -81,6 +81,14 @@ The receipt with the person block (rule 10), for a returning customer and for a 
 ✉️ Confirmation sent
 
 🎓 No past programs in the bot
+```
+
+The caption under the widget (rule 11). Plain text: the widget shows the application, the payment and the history, the caption adds the rest:
+
+```text
+✅ Enrolled: Ada (@ada)
+📒 Ledger: recorded, code cohort_autumn_early
+✉️ Confirmation sent
 ```
 
 Review card with `Confirm` and `Reject` buttons, then the footer after the decision (rule 9):
