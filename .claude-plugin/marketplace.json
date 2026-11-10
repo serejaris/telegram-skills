@@ -1,6 +1,6 @@
 {
   "name": "telegram-skills",
-  "description": "Agent Skills for Telegram Bot API 10.3 Rich Messages — outgoing blocks, uploaded media, structured documents, streaming AI replies, polls with description and media, and rewriting agent replies for non-engineers",
+  "description": "Agent Skills for Telegram Bot API 10.3 Rich Messages — outgoing blocks, uploaded media, structured documents, streaming AI replies, polls with description and media, rewriting agent replies for non-engineers, and operator cards for payments and orders",
   "owner": {
     "name": "serejaris"
   },
@@ -8,8 +8,8 @@
     {
       "name": "telegram-skills",
       "source": "./",
-      "description": "Telegram Bot API 10.3 Rich Messages skills: send outgoing blocks, uploaded media, structured documents, streaming AI replies, polls with description and media, and rewrite agent replies for non-engineers",
-      "version": "1.6.0",
+      "description": "Telegram Bot API 10.3 Rich Messages skills: send outgoing blocks, uploaded media, structured documents, streaming AI replies, polls with description and media, rewrite agent replies for non-engineers, and shape operator cards for payments and orders",
+      "version": "1.7.0",
       "license": "MIT"
     }
   ]

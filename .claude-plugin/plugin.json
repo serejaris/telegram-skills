@@ -1,12 +1,12 @@
 {
   "name": "telegram-skills",
-  "description": "Telegram Bot API 10.3 Rich Messages skills: send structured documents, block JSON, uploaded media, galleries, maps, streaming AI replies, polls with description and media, and rewrite agent replies for non-engineers",
-  "version": "1.6.0",
+  "description": "Telegram Bot API 10.3 Rich Messages skills: send structured documents, block JSON, uploaded media, galleries, maps, streaming AI replies, polls with description and media, rewrite agent replies for non-engineers, and shape operator cards for payments and orders",
+  "version": "1.7.0",
   "author": {
     "name": "serejaris"
   },
   "homepage": "https://github.com/serejaris/telegram-skills",
   "repository": "https://github.com/serejaris/telegram-skills",
   "license": "MIT",
-  "keywords": ["telegram", "bot-api", "rich-messages", "streaming", "digest", "polls", "reply-rewrite", "widgets"]
+  "keywords": ["telegram", "bot-api", "rich-messages", "streaming", "digest", "polls", "reply-rewrite", "widgets", "operator-cards"]
 }
