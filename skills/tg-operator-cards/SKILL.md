@@ -13,7 +13,7 @@ Not for messages to customers, digests of many events ([`tg-rich-digest`](../tg-
 ## Rules
 
 1. **First line: outcome and person.** It must make sense alone in a notification preview: `✅ Enrolled: Ada (@ada)`. Bold the outcome and the name. A review card starts with the thing to decide: `🧾 Order #482`.
-2. **One fact per line.** Each line starts with one emoji that names the kind of fact: 🧾 order or application, 💳 money, ✉️ delivery to the person. The same emoji means the same kind of fact in every card of the bot. No blank lines inside a card.
+2. **One fact per line.** Each line starts with one emoji that names the kind of fact: 🧾 order or application, 💳 money, ✉️ delivery to the person. The same emoji means the same kind of fact in every card of the bot. No blank lines inside a block.
 3. **Label first, value second.** Bold only the values the operator checks against another system: the amount, the order number. Put values the operator copies in `<code>`: product code, ticket code, ID.
 4. **A problem takes the place of the normal line.** Where the card would say what went fine, put ⚠️, what failed, and the next step in one sentence. The card keeps its shape, so the warning line is the one that looks different.
 5. **Say what the bot did.** `Confirmation sent`, not `sent him the confirmation`. In languages with grammatical gender this keeps the card correct for every person.
@@ -21,17 +21,19 @@ Not for messages to customers, digests of many events ([`tg-rich-digest`](../tg-
 7. **No filler.** No "successfully", no "please note", no closing period on a one-fact line.
 8. **Escape `&`, `<`, `>` in every dynamic value.** Names come from users. One unescaped `<` and Telegram rejects the whole message with `400 can't parse entities`: the action happened, and the operator saw nothing.
 9. **The decision edits the card.** When the operator presses a button, edit the same message with `editMessageText`: the same card text, a footer line, and no decision buttons. One event stays one message in the chat.
+10. **What the bot knows about the person is a second block.** After one blank line: a count line, then past orders oldest first, each with its period and amount. Name where the knowledge ends (`in the bot`), so an empty history is not read as a new customer. Leave the current order out of the list. When the history cannot be read, omit the block: `none` is a claim, not a fallback.
 
 ## Limits
 
 | Part | Limit | Source |
 |---|---|---|
-| Card | up to 6 lines | editorial, one glance |
+| Event block | up to 6 lines | editorial, one glance |
+| Person block | count line and up to 5 items | editorial; the count names the total |
 | Line | about 45 characters | editorial, no wrap on a phone |
 | `sendMessage` text | 4 096 characters after entity parsing | Bot API |
 | `callback_data` | 1–64 bytes | Bot API |
 
-A card that needs more than six lines is a report: send it with tg-rich-messages.
+An event that needs more than six lines is a report: send it with tg-rich-messages.
 
 ## Examples (invented data)
 
@@ -62,6 +64,22 @@ The same receipt when two steps failed (rule 4):
 💳 Paid <b>19 000 ₽</b> on 08.11.2026
 ⚠️ Ledger: row not written. Run the same command again, the retry adds it.
 ⚠️ Message not delivered: the bot is not started or the chat is closed
+```
+
+The receipt with the person block (rule 10), for a returning customer and for a first order:
+
+```html
+✉️ Confirmation sent
+
+🎓 Past programs in the bot: <b>2</b>
+• Spring cohort · March 2026 · 39 000 ₽
+• Summer cohort · June 2026 · 35 000 ₽
+```
+
+```html
+✉️ Confirmation sent
+
+🎓 No past programs in the bot
 ```
 
 Review card with `Confirm` and `Reject` buttons, then the footer after the decision (rule 9):
