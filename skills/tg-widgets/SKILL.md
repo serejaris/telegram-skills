@@ -162,7 +162,7 @@ To put a widget in front of a group, forum topic or channel audience today, post
 
 ## Examples
 
-`examples/` holds widgets built with this skill and opened on an iPhone. They show one author's look. Sizes after zlib level 9:
+`examples/` holds widgets built with this skill and opened on an iPhone. They show one author's look. [`examples/index.html`](examples/index.html) runs all four on one page in a browser, without Telegram. Sizes after zlib level 9:
 
 | File | Bytes |
 |---|---|
