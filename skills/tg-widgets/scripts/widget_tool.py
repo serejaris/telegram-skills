@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Measure a Telegram widget like the server does, and send it once.
 
-check: no network. send: one POST to the beta Bot API path, never retried, because
+check: no network. send: one POST to the Bot API, never retried, because
 a timeout does not prove the message was not delivered.
 """
 import argparse
@@ -15,7 +15,7 @@ import zlib
 MAX_HTML = 32768
 MAX_ZLIB = 4096
 TARGET_ZLIB = 3800
-API = "https://api.telegram.org/beta/bot{token}/sendWidget"
+API = "https://api.telegram.org/bot{token}/sendWidget"
 
 
 def measure(data: bytes) -> dict:

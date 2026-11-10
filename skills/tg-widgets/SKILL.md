@@ -1,6 +1,6 @@
 ---
 name: tg-widgets
-description: "Use when building or sending a Telegram message widget (HTML bubble, HTMLBubbles, `sendWidget`, `messageMediaWidget`, Bot API 10.4): an interactive HTML, CSS and JS program inside a chat bubble, such as a game, poll, calculator or live ticker. Teaches everything needed to write one: size, bubble, input, sandbox rules, state and requests, sending, and where live delivery differs from the documentation. Not for Mini Apps or Rich Messages."
+description: "Use when building or sending a Telegram message widget (HTML bubble, HTMLBubbles, `sendWidget`, `messageMediaWidget`, Bot API 10.4): an interactive HTML, CSS and JS program inside a chat bubble, such as a game, poll, calculator or live ticker. Teaches everything needed to write one: size, bubble, input, sandbox rules, state and requests, sending, and which chats accept a widget in production. Not for Mini Apps or Rich Messages."
 license: MIT
 ---
 
@@ -8,7 +8,7 @@ license: MIT
 
 A widget is one self-contained HTML document with inline CSS and JS. A bot sends it as a message, and it runs in the chat bubble with no window, no server and no network. The HTML never changes after sending; only the bot changes the widget's state.
 
-Everything needed to write a widget is below. The rules follow Telegram's [`widget-sandbox`](https://github.com/TelegramMessenger/widget-sandbox) documentation, v0.6.0, checked on 2026-11-06. Telegram has not announced widgets, the public Bot API docs stop at 10.3, and names may change until 10.4 ships. For a detail not covered here, see `docs/sdk-v1.md` and `docs/profile-v1.md` in that repository.
+Everything needed to write a widget is below. The rules follow Telegram's [`widget-sandbox`](https://github.com/TelegramMessenger/widget-sandbox) documentation, v0.6.0, checked on 2026-11-06. Bot API 10.4 (2026-11-09) made widgets official: the methods and the delivery rules are on [core.telegram.org/bots/widgets](https://core.telegram.org/bots/widgets), and where that page and the repository disagree, the page wins. For a detail not covered here, see `docs/sdk-v1.md` and `docs/profile-v1.md` in that repository.
 
 ## Steps
 
@@ -130,28 +130,31 @@ requestAnimationFrame(frame);T&&T.ready();
 </script>
 ```
 
-## Delivery: documentation and live check
+## Delivery: production and live check
 
-The documentation allows more than the live API accepted. Live means real requests on 2026-11-06 with production bots. Recheck before you plan around it.
+Widgets roll out in steps. On the test server groups, forum topics, inline mode and forwards work too. In production a bot sends widgets only to private chats: Bot API 10.4 and the official page say so. Live means real requests with a production bot on 2026-11-10; a row marked 2026-11-06 was not retried. Recheck before you plan around it.
 
-| Target | Documentation | Live |
+| Target | Documentation, production | Live |
 |---|---|---|
-| `api.telegram.org/bot<token>/sendWidget` | beta path only | 404 |
-| `api.telegram.org/beta/bot<token>/sendWidget` | works | works with a normal token |
+| `api.telegram.org/bot<token>/sendWidget` | the documented path | works, HTTP 200; was 404 on 2026-11-06 |
+| `api.telegram.org/beta/bot<token>/sendWidget` | not mentioned any more | works |
 | Private chat with the bot | allowed | works, rendered on an iPhone |
-| Group or supergroup with the bot | allowed | supergroup and a channel's discussion group refused: `INPUT_MEDIA_WIDGET_NOT_ALLOWED` |
-| Channel, direct | not allowed yet | refused, same error |
-| Inline mode | allowed | refused in a channel, and for a query from the private chat with the bot |
-| `forwardMessage` | allowed to any chat | refused: `the message can't be forwarded` |
-| `copyMessage` | refused | refused |
+| Basic group or supergroup with the bot | test server only; the bot needs `can_send_other_messages` | 2026-11-06: supergroup and a channel's discussion group refused: `INPUT_MEDIA_WIDGET_NOT_ALLOWED` |
+| Forum topic, `message_thread_id` | test server only | not tried |
+| Channel, direct or via the bot | refused, on the test server too | 2026-11-06: refused, same error |
+| Inline mode | test server only | 2026-11-06: refused in a channel, and for a query from the private chat with the bot |
+| `forwardMessage` | refused: every widget has protected content | refused: `the message can't be forwarded` |
+| `copyMessage` | refused | refused: `the message can't be copied` |
 
-To put a widget in front of a channel audience today, publish a post with a video and a `t.me/<bot>?start=...` link, and let the bot send the widget in the private chat.
+Forwards do not exist in production yet, so `isForward` and the forwarded copy of `publicData` matter only on the test server.
+
+To put a widget in front of a group, forum topic or channel audience today, post an ordinary message there with a `t.me/<bot>?start=...` link, and let the bot send the widget in the private chat.
 
 ## Bot API
 
 | Method | Purpose |
 |---|---|
-| `sendWidget` | `chat_id`, `html`, `width`, `height` (0 = auto), `chat_data`, `public_data`, `caption`, `allow_queries`, `is_shared`, `reply_markup` |
+| `sendWidget` | `chat_id`, `message_thread_id` (forum supergroups and private chats with topics), `html`, `width`, `height` (0 = auto), `chat_data`, `public_data`, `caption`, `allow_queries`, `is_shared`, `reply_markup` |
 | `sendSharedWidget` | post an existing shared widget again by `widget_id` |
 | `editMessageWidgetData` | change `chat_data` or `public_data` of one message silently; `message is not modified` counts as done |
 | `editSharedWidgetData` | change the state of a shared widget everywhere, `cache_time` 5–3600 s |
