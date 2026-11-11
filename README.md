@@ -64,6 +64,7 @@ Then ask your agent — e.g. *"send this report to my Telegram channel as a rich
 | [`tg-reply-rewrite`](skills/tg-reply-rewrite/) | Rewrite a raw agent reply for a non-engineer on a phone: what happened and how urgent, what it means, a ready sentence to send back, every fact unchanged |
 | [`tg-operator-cards`](skills/tg-operator-cards/) | Cards a bot sends to its own operator about one event (payment, order, enrollment): outcome and person on the first line, one fact per line, warning in place of the normal line, decision footer, escaped dynamic text |
 | [`tg-widgets`](skills/tg-widgets/) | Interactive HTML message widgets (HTML bubbles, `sendWidget`): how to write them by Telegram's docs, limits, input, state, which chats accept a widget in production |
+| [`tg-sticker-pack`](skills/tg-sticker-pack/) | Static stickers from a meme frame or video: cutout, caption on top (WordArt, Impact, tags), offline format check, publishing through @Stickers from a user account or `createNewStickerSet` from a bot |
 
 ## Reference
 
