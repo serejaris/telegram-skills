@@ -1,14 +1,22 @@
 # Telegram Skills for AI Agents
 
-**Telegram skills** for Claude Code, Codex CLI, Cursor, and any agent supporting the [Agent Skills standard (agentskills.io)](https://agentskills.io). Teach your AI agent to send Rich Messages (structured documents, tables, galleries, maps, uploaded media), stream AI replies, build interactive HTML widgets, run polls, and make sticker packs from any Telegram bot. Guide: [Telegram skills for Claude Code and Codex](https://sereja.tech/blog/telegram-skills-claude-code/).
+**Telegram skills** are [Agent Skills](https://agentskills.io) (folders with a `SKILL.md` file) that teach an AI agent how to work with Telegram. This library gives Claude Code, Codex CLI, Cursor and any other compatible agent a Telegram skill for each job: sending Rich Messages (tables, galleries, maps, collapsible sections), streaming AI replies, building interactive HTML widgets, running polls, publishing sticker packs and writing channel digests from any bot. Every skill calls the Bot API over raw HTTP, so no bot framework is required.
 
-Bot API 10.1 (June 11, 2026) introduced [Rich Messages](https://core.telegram.org/bots/api#rich-message-formatting-options): bots can send document-grade structured messages and stream AI-generated replies with a native "thinking" block. Bot API 10.2 (July 14, 2026) added outgoing block JSON plus explicit media bindings, including Telegram `file_id`, HTTP URLs, and multipart uploads.
+Guide (in Russian): [Telegram skills for Claude Code and Codex](https://sereja.tech/blog/telegram-skills-claude-code/).
 
-These skills work through raw HTTP calls to the Bot API — no bot framework required, any stack.
+## Skills
 
-Bot API 10.3 (August 24, 2026) adds native rich-message button rows and compact tables. Styled inline keyboard buttons use `primary`, `success`, and `danger`. The dependency-free [Python UI helper](skills/tg-rich-messages/scripts/rich_ui.py) builds validated literal block payloads and native inline buttons; it performs no network calls. See [consumer integration](skills/tg-rich-messages/consumer-integration.md).
-
-Polls (Bot API 9.1–10.1): up to 12 options, a 1024-char description with media, so a post and its poll fit in one message. See [`tg-polls`](skills/tg-polls/).
+| Skill | What it does |
+|---|---|
+| [`tg-rich-messages`](skills/tg-rich-messages/SKILL.md) | Core reference: markup, outgoing block JSON, media bindings and uploads, preflight, limits, raw HTTP sending |
+| [`tg-markdown-to-rich`](skills/tg-markdown-to-rich/SKILL.md) | Convert Markdown into a rich message and bind `file_id`, URL, or uploaded media |
+| [`tg-rich-streaming`](skills/tg-rich-streaming/SKILL.md) | Stream LLM output into a chat: draft animation, thinking block, mandatory finalization |
+| [`tg-polls`](skills/tg-polls/SKILL.md) | Polls and quizzes from a bot or a user account: text + poll in one message via description, media, 12 options, all poll settings and limits |
+| [`tg-rich-digest`](skills/tg-rich-digest/SKILL.md) | Digest and channel-article patterns: flat layout, preview + collapsed full version, media as evidence, preflight gate |
+| [`tg-reply-rewrite`](skills/tg-reply-rewrite/SKILL.md) | Rewrite a raw agent reply for a non-engineer on a phone: what happened and how urgent, what it means, a ready sentence to send back, every fact unchanged |
+| [`tg-operator-cards`](skills/tg-operator-cards/SKILL.md) | Cards a bot sends to its own operator about one event (payment, order, enrollment): outcome and person on the first line, one fact per line, warning in place of the normal line, decision footer, escaped dynamic text |
+| [`tg-widgets`](skills/tg-widgets/SKILL.md) | Interactive HTML message widgets (HTML bubbles, `sendWidget`): how to write them by Telegram's docs, limits, input, state, which chats accept a widget in production |
+| [`tg-sticker-pack`](skills/tg-sticker-pack/SKILL.md) | Static stickers from a meme frame or video: cutout, caption on top (WordArt, Impact, tags), offline format check, publishing through @Stickers from a user account or `createNewStickerSet` from a bot |
 
 ## Install
 
@@ -52,19 +60,13 @@ cp -r skills/* your-project/.agents/skills/
 
 Then ask your agent — e.g. *"send this report to my Telegram channel as a rich message"*.
 
-## Skills
+## Bot API versions
 
-| Skill | What it does |
-|---|---|
-| [`tg-rich-messages`](skills/tg-rich-messages/) | Core reference: markup, outgoing block JSON, media bindings and uploads, preflight, limits, raw HTTP sending |
-| [`tg-markdown-to-rich`](skills/tg-markdown-to-rich/) | Convert Markdown into a rich message and bind `file_id`, URL, or uploaded media |
-| [`tg-rich-streaming`](skills/tg-rich-streaming/) | Stream LLM output into a chat: draft animation, thinking block, mandatory finalization |
-| [`tg-polls`](skills/tg-polls/) | Polls and quizzes from a bot or a user account: text + poll in one message via description, media, 12 options, all poll settings and limits |
-| [`tg-rich-digest`](skills/tg-rich-digest/) | Digest and channel-article patterns: flat layout, preview + collapsed full version, media as evidence, preflight gate |
-| [`tg-reply-rewrite`](skills/tg-reply-rewrite/) | Rewrite a raw agent reply for a non-engineer on a phone: what happened and how urgent, what it means, a ready sentence to send back, every fact unchanged |
-| [`tg-operator-cards`](skills/tg-operator-cards/) | Cards a bot sends to its own operator about one event (payment, order, enrollment): outcome and person on the first line, one fact per line, warning in place of the normal line, decision footer, escaped dynamic text |
-| [`tg-widgets`](skills/tg-widgets/) | Interactive HTML message widgets (HTML bubbles, `sendWidget`): how to write them by Telegram's docs, limits, input, state, which chats accept a widget in production |
-| [`tg-sticker-pack`](skills/tg-sticker-pack/) | Static stickers from a meme frame or video: cutout, caption on top (WordArt, Impact, tags), offline format check, publishing through @Stickers from a user account or `createNewStickerSet` from a bot |
+Bot API 10.1 (June 11, 2026) introduced [Rich Messages](https://core.telegram.org/bots/api#rich-message-formatting-options): bots can send document-grade structured messages and stream AI-generated replies with a native "thinking" block. Bot API 10.2 (July 14, 2026) added outgoing block JSON plus explicit media bindings, including Telegram `file_id`, HTTP URLs, and multipart uploads.
+
+Bot API 10.3 (August 24, 2026) adds native rich-message button rows and compact tables. Styled inline keyboard buttons use `primary`, `success`, and `danger`. The dependency-free [Python UI helper](skills/tg-rich-messages/scripts/rich_ui.py) builds validated literal block payloads and native inline buttons; it performs no network calls. See [consumer integration](skills/tg-rich-messages/consumer-integration.md).
+
+Polls (Bot API 9.1–10.1): up to 12 options, a 1024-char description with media, so a post and its poll fit in one message. See [`tg-polls`](skills/tg-polls/SKILL.md).
 
 ## Reference
 
