@@ -1,6 +1,6 @@
 {
   "name": "telegram-skills",
-  "description": "Agent Skills for Telegram Bot API 10.3 — rich and classic messages, streaming AI replies, polls, Mini App launch, initData auth and UI, Stars payments, bot operations, and a capability map",
+  "description": "Agent Skills for telegram skills for AI agents on Bot API 10.3: rich and classic messages, block JSON, uploaded media, streaming AI replies, polls, HTML widgets, sticker packs, digests, reply rewriting, operator cards, Mini App launch, initData auth and UI, Stars payments, bot operations, and a capability map",
   "owner": {
     "name": "serejaris"
   },
@@ -8,8 +8,8 @@
     {
       "name": "telegram-skills",
       "source": "./",
-      "description": "Telegram Bot API 10.3 skills: rich and classic messages, streaming AI replies, polls, Mini App launch, initData auth and UI, Stars payments, bot operations, and a capability map",
-      "version": "1.5.0",
+      "description": "Telegram skills for AI agents on Bot API 10.3: rich and classic messages, block JSON, uploaded media, streaming AI replies, polls, HTML widgets, sticker packs, digests, reply rewriting, operator cards, Mini App launch, initData auth and UI, Stars payments, bot operations, and a capability map",
+      "version": "1.8.0",
       "license": "MIT"
     }
   ]

@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="ru">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>Виджеты Telegram: живые примеры</title>
+<meta name="description" content="Четыре виджета Telegram работают прямо на странице: аквариум, игра «Ночной деплой» в двух версиях и панель с узором из символов.">
+<style>
+:root{--m:8px;--bg:#0e1621;--bar:#17212b;--bubble:#182533;--text:#e9eef4;--hint:#7d8e9f;--link:#6ab3f3;--line:rgba(125,142,159,.22)}
+*{box-sizing:border-box}
+html{background:var(--bg);color:var(--text);font:15px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-text-size-adjust:100%}
+body{margin:0}
+a{color:var(--link);text-decoration:none}
+a:hover,a:focus-visible{text-decoration:underline}
+.bar{position:sticky;top:0;z-index:1;display:flex;align-items:center;gap:calc(var(--m)*1.5);padding:var(--m) calc(var(--m)*2);background:var(--bar);border-bottom:1px solid var(--line)}
+.ava{flex:none;width:calc(var(--m)*5);height:calc(var(--m)*5);border-radius:50%;background:#2f6ea5;display:grid;place-items:center;font-weight:600;font-size:17px;color:#fff}
+h1{margin:0;font-size:16px;font-weight:600;line-height:1.25}
+.bar p{margin:0;font-size:13px;color:var(--hint)}
+main{max-width:calc(var(--m)*116);margin:0 auto;padding:calc(var(--m)*2) calc(var(--m)*1.5) calc(var(--m)*4)}
+.msg{background:var(--bubble);border-radius:16px 16px 16px 6px;overflow:hidden}
+.text{max-width:calc(var(--m)*56);padding:var(--m) calc(var(--m)*1.5);margin:0 0 calc(var(--m)*2)}
+.text p{margin:0}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:calc(var(--m)*3);margin:0 0 calc(var(--m)*3);padding:0;list-style:none}
+iframe{display:block;width:100%;aspect-ratio:16/9;border:0;background:#000}
+.cap{padding:var(--m) calc(var(--m)*1.5) calc(var(--m)*1.25)}
+h2{margin:0;font-size:15px;font-weight:600}
+.cap p{margin:0}
+.meta{display:flex;justify-content:space-between;gap:var(--m);margin-top:calc(var(--m)*.5);font-size:12px;color:var(--hint);font-variant-numeric:tabular-nums}
+@media (max-width:719px){
+  .grid{grid-template-columns:minmax(0,1fr);gap:calc(var(--m)*2)}
+  main{padding-left:var(--m);padding-right:var(--m)}
+}
+</style>
+<header class="bar">
+  <div class="ava" aria-hidden="true">В</div>
+  <div>
+    <h1>Виджеты Telegram</h1>
+    <p>программа прямо в сообщении</p>
+  </div>
+</header>
+<main>
+  <div class="msg text">
+    <p>Бот присылает сообщение, а в нём работает программа на HTML, JavaScript и canvas. Размер: до 4096 байт после сжатия. Ниже четыре таких сообщения, нажимайте.</p>
+  </div>
+  <ul class="grid">
+    <li class="msg">
+      <iframe src="aquarium-pixel.html" title="Виджет «Аквариум»"></iframe>
+      <div class="cap">
+        <h2>Аквариум</h2>
+        <p>Покорми рыбок: нажми на воду.</p>
+        <div class="meta"><span>4080 байт</span><a href="https://github.com/serejaris/telegram-skills/blob/main/skills/tg-widgets/examples/aquarium-pixel.html">код</a></div>
+      </div>
+    </li>
+    <li class="msg">
+      <iframe src="night-deploy-pixel.html" title="Виджет «Ночной деплой»"></iframe>
+      <div class="cap">
+        <h2>Ночной деплой</h2>
+        <p>Выживи до утра. Нажми и веди пальцем вбок.</p>
+        <div class="meta"><span>4086 байт</span><a href="https://github.com/serejaris/telegram-skills/blob/main/skills/tg-widgets/examples/night-deploy-pixel.html">код</a></div>
+      </div>
+    </li>
+    <li class="msg">
+      <iframe src="night-deploy-textmode.html" title="Виджет «Ночной деплой», текстовый режим"></iframe>
+      <div class="cap">
+        <h2>Ночной деплой, текстовый режим</h2>
+        <p>Та же игра, нарисованная буквами.</p>
+        <div class="meta"><span>4071 байт</span><a href="https://github.com/serejaris/telegram-skills/blob/main/skills/tg-widgets/examples/night-deploy-textmode.html">код</a></div>
+      </div>
+    </li>
+    <li class="msg">
+      <iframe src="textmode-panel.html" title="Виджет «Панель»"></iframe>
+      <div class="cap">
+        <h2>Панель с узором из символов</h2>
+        <p>Стрелки: поле, масштаб, скорость, цвет.</p>
+        <div class="meta"><span>2134 байта</span><a href="https://github.com/serejaris/telegram-skills/blob/main/skills/tg-widgets/examples/textmode-panel.html">код</a></div>
+      </div>
+    </li>
+  </ul>
+  <div class="msg text">
+    <p>В Telegram аквариум и игру присылает бот: <a href="https://t.me/hashslash_bot?start=aq">t.me/hashslash_bot?start=aq</a>. Как устроены виджеты: <a href="https://sereja.tech/blog/vidzhety-v-soobshcheniyah-telegram/">гайд в блоге</a>. Свой виджет: дайте агенту <a href="https://github.com/serejaris/telegram-skills">библиотеку скиллов для Telegram</a> и попросите его сделать.</p>
+  </div>
+</main>
+</html>

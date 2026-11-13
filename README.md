@@ -1,16 +1,28 @@
-# telegram-skills
+# Telegram Skills for AI Agents
 
-**Agent Skills for Telegram Bot API 10.3: messages, Mini Apps, Stars payments and bot operations** — works with Claude Code, Codex CLI, Cursor, and any agent supporting the [Agent Skills standard (agentskills.io)](https://agentskills.io). Teach your AI agent to send structured documents, tables, galleries, maps, uploaded media, and streaming AI replies from any Telegram bot, and to launch, secure and lay out a Mini App.
+**Telegram skills** are [Agent Skills](https://agentskills.io) (folders with a `SKILL.md` file) that teach an AI agent how to work with Telegram. This library gives Claude Code, Codex CLI, Cursor and any other compatible agent a Telegram skill for each job: sending Rich Messages (tables, galleries, maps, collapsible sections), streaming AI replies, building interactive HTML widgets, running polls, publishing sticker packs, writing channel digests, launching and securing Mini Apps, and selling for Stars from any bot. Every skill calls the Bot API over raw HTTP, so no bot framework is required.
 
-Bot API 10.1 (June 11, 2026) introduced [Rich Messages](https://core.telegram.org/bots/api#rich-message-formatting-options): bots can send document-grade structured messages and stream AI-generated replies with a native "thinking" block. Bot API 10.2 (July 14, 2026) added outgoing block JSON plus explicit media bindings, including Telegram `file_id`, HTTP URLs, and multipart uploads.
+Guide (in Russian): [Telegram skills for Claude Code and Codex](https://sereja.tech/blog/telegram-skills-claude-code/).
 
-These skills work through raw HTTP calls to the Bot API — no bot framework required, any stack.
+## Skills
 
-Bot API 10.3 (August 24, 2026) adds native rich-message button rows and compact tables. Styled inline keyboard buttons use `primary`, `success`, and `danger`. The dependency-free [Python UI helper](skills/tg-rich-messages/scripts/rich_ui.py) builds validated literal block payloads and native inline buttons; it performs no network calls. See [consumer integration](skills/tg-rich-messages/consumer-integration.md).
-
-Polls (Bot API 9.1–10.1): up to 12 options, a 1024-char description with media, so a post and its poll fit in one message. See [`tg-polls`](skills/tg-polls/).
-
-Mini Apps: launch paths, `initData` validation with a tested helper, origin protection, and a dated list of client bugs on iOS, Android and Desktop. See [`tg-miniapp-launch-auth`](skills/tg-miniapp-launch-auth/) and [`tg-miniapp-ui`](skills/tg-miniapp-ui/).
+| Skill | What it does |
+|---|---|
+| [`tg-rich-messages`](skills/tg-rich-messages/SKILL.md) | Core reference: markup, outgoing block JSON, media bindings and uploads, preflight, limits, raw HTTP sending |
+| [`tg-markdown-to-rich`](skills/tg-markdown-to-rich/SKILL.md) | Convert Markdown into a rich message and bind `file_id`, URL, or uploaded media |
+| [`tg-rich-streaming`](skills/tg-rich-streaming/SKILL.md) | Stream LLM output into a chat: plain and rich drafts, thinking block, stop button, mandatory finalization |
+| [`tg-polls`](skills/tg-polls/SKILL.md) | Polls and quizzes from a bot or a user account: text + poll in one message via description, media, 12 options, all poll settings and limits, reading results |
+| [`tg-rich-digest`](skills/tg-rich-digest/SKILL.md) | Digest and channel-article patterns: flat layout, preview + collapsed full version, media as evidence, preflight gate |
+| [`tg-reply-rewrite`](skills/tg-reply-rewrite/SKILL.md) | Rewrite a raw agent reply for a non-engineer on a phone: what happened and how urgent, what it means, a ready sentence to send back, every fact unchanged |
+| [`tg-operator-cards`](skills/tg-operator-cards/SKILL.md) | Cards a bot sends to its own operator about one event (payment, order, enrollment): outcome and person on the first line, one fact per line, warning in place of the normal line, decision footer, escaped dynamic text |
+| [`tg-widgets`](skills/tg-widgets/SKILL.md) | Interactive HTML message widgets (HTML bubbles, `sendWidget`): how to write them by Telegram's docs, limits, input, state, which chats accept a widget in production |
+| [`tg-sticker-pack`](skills/tg-sticker-pack/SKILL.md) | Static stickers from a meme frame or video: cutout, caption on top (WordArt, Impact, tags), offline format check, publishing through @Stickers from a user account or `createNewStickerSet` from a bot |
+| [`tg-miniapp-launch-auth`](skills/tg-miniapp-launch-auth/SKILL.md) | Open a Mini App and trust its user: launch paths, `startapp`, `initData` by HMAC and Ed25519, version gating, origin protection, test environment |
+| [`tg-miniapp-ui`](skills/tg-miniapp-ui/SKILL.md) | Build a Mini App interface: theme, safe areas, fullscreen, bottom buttons, haptics, performance, client bugs by platform |
+| [`tg-stars-payments`](skills/tg-stars-payments/SKILL.md) | Sell digital goods for Stars from a bot or Mini App: invoices, pre-checkout, crediting by `telegram_payment_charge_id` with an atomic delivery claim, refunds, subscriptions, paid media, dated payout figures |
+| [`tg-classic-messages`](skills/tg-classic-messages/SKILL.md) | Ordinary bot messages: limits, HTML and MarkdownV2 escaping, quotes, `date_time`, link previews, captions, albums, upload sizes, editing and deleting; when to choose rich instead |
+| [`tg-capability-map`](skills/tg-capability-map/SKILL.md) | What a bot can do, what lives only in the client or MTProto, and what not to promise; every row dated with an address |
+| [`tg-bot-ops`](skills/tg-bot-ops/SKILL.md) | Running a bot: webhook or polling, `allowed_updates`, secret token, 429 and `retry_after`, file retries, lost and poison updates, `t.me` outages, local server |
 
 ## Install
 
@@ -54,26 +66,18 @@ cp -r skills/* your-project/.agents/skills/
 
 Then ask your agent — e.g. *"send this report to my Telegram channel as a rich message"*.
 
-## Skills
+## Bot API versions
 
-| Skill | What it does |
-|---|---|
-| [`tg-rich-messages`](skills/tg-rich-messages/) | Core reference: markup, outgoing block JSON, media bindings and uploads, preflight, limits, raw HTTP sending |
-| [`tg-markdown-to-rich`](skills/tg-markdown-to-rich/) | Convert Markdown into a rich message and bind `file_id`, URL, or uploaded media |
-| [`tg-rich-streaming`](skills/tg-rich-streaming/) | Stream LLM output into a chat: plain and rich drafts, thinking block, stop button, mandatory finalization |
-| [`tg-polls`](skills/tg-polls/) | Polls and quizzes from a bot or a user account: text + poll in one message via description, media, 12 options, all poll settings and limits, reading results |
-| [`tg-rich-digest`](skills/tg-rich-digest/) | Digest and channel-article patterns: flat layout, preview + collapsed full version, media as evidence, preflight gate |
-| [`tg-miniapp-launch-auth`](skills/tg-miniapp-launch-auth/) | Open a Mini App and trust its user: launch paths, `startapp`, `initData` by HMAC and Ed25519, version gating, origin protection, test environment |
-| [`tg-miniapp-ui`](skills/tg-miniapp-ui/) | Build a Mini App interface: theme, safe areas, fullscreen, bottom buttons, haptics, performance, client bugs by platform |
-| [`tg-stars-payments`](skills/tg-stars-payments/) | Sell digital goods for Stars from a bot or Mini App: invoices, pre-checkout, crediting by `telegram_payment_charge_id` with an atomic delivery claim, refunds, subscriptions, paid media, dated payout figures |
-| [`tg-classic-messages`](skills/tg-classic-messages/) | Ordinary bot messages: limits, HTML and MarkdownV2 escaping, quotes, `date_time`, link previews, captions, albums, upload sizes, editing and deleting; when to choose rich instead |
-| [`tg-capability-map`](skills/tg-capability-map/) | What a bot can do, what lives only in the client or MTProto, and what not to promise; every row dated with an address |
-| [`tg-bot-ops`](skills/tg-bot-ops/) | Running a bot: webhook or polling, `allowed_updates`, secret token, 429 and `retry_after`, file retries, lost and poison updates, `t.me` outages, local server |
+Bot API 10.1 (June 11, 2026) introduced [Rich Messages](https://core.telegram.org/bots/api#rich-message-formatting-options): bots can send document-grade structured messages and stream AI-generated replies with a native "thinking" block. Bot API 10.2 (July 14, 2026) added outgoing block JSON plus explicit media bindings, including Telegram `file_id`, HTTP URLs, and multipart uploads.
+
+Bot API 10.3 (August 24, 2026) adds native rich-message button rows and compact tables. Styled inline keyboard buttons use `primary`, `success`, and `danger`. The dependency-free [Python UI helper](skills/tg-rich-messages/scripts/rich_ui.py) builds validated literal block payloads and native inline buttons; it performs no network calls. See [consumer integration](skills/tg-rich-messages/consumer-integration.md).
+
+Polls (Bot API 9.1–10.1): up to 12 options, a 1024-char description with media, so a post and its poll fit in one message. See [`tg-polls`](skills/tg-polls/SKILL.md).
 
 ## Reference
 
-- [`reference/rich-messages-spec.md`](reference/rich-messages-spec.md) — core extracted spec, limits, known bugs and Bot API 10.3 UI additions, checked on 2026-10-30
-- Official: [Bot API docs](https://core.telegram.org/bots/api) · [changelog](https://core.telegram.org/bots/api-changelog) · [Mini Apps](https://core.telegram.org/bots/webapps) · demo bot [@RichTextDemoBot](https://t.me/RichTextDemoBot)
+- [`reference/rich-messages-spec.md`](reference/rich-messages-spec.md) — core extracted spec, limits and Bot API 10.3 UI additions
+- Official: [Bot API docs](https://core.telegram.org/bots/api) · [changelog](https://core.telegram.org/bots/api-changelog) · demo bot [@RichTextDemoBot](https://t.me/RichTextDemoBot)
 
 ## License
 

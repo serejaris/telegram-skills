@@ -21,6 +21,8 @@ A post and its poll fit in one message. Put the post text into the poll **descri
 
 A poll can't go inside a rich message (no poll block among the 24 `InputRichBlock` types), into an album (`sendMediaGroup` takes audio, document, live photo, photo, video only) or into `sendMessage`.
 
+MTProto `attached_media` does not accept a freshly uploaded file: `inputMediaUploadedPhoto` returns `ATTACH_MEDIA_INVALID`. Upload first with `messages.uploadMedia`, then pass `inputMediaPhoto` with the returned photo's id, access hash and file reference. Verified 2026-11-11 in a self-chat: 12 options plus a photo, read back as `messageMediaPoll` with `attached_media`.
+
 MTProto has no separate description field in `poll` / `inputMediaPoll`. The caption is the description. Verified 2026-10-16 with Telethon 1.44 (layer 227) in a self-chat: the server accepted a 12-option poll with a caption and returned the text in `message.message`.
 
 ## Limits
