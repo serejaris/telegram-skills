@@ -1,4 +1,5 @@
 import importlib.util
+import unittest
 import os
 import pathlib
 
@@ -8,18 +9,16 @@ tool = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(tool)
 
 
-def test_small_widget_is_ok():
-    assert tool.measure(b"<p>hello</p>")["verdict"] == "ok"
+class WidgetToolTest(unittest.TestCase):
+    def test_small_widget_is_ok(self):
+        assert tool.measure(b"<p>hello</p>")["verdict"] == "ok"
 
+    def test_incompressible_html_is_too_large(self):
+        assert tool.measure(os.urandom(5000))["verdict"] == "too_large"
 
-def test_incompressible_html_is_too_large():
-    assert tool.measure(os.urandom(5000))["verdict"] == "too_large"
+    def test_over_html_limit_is_too_large_even_if_it_compresses(self):
+        assert tool.measure(b"a" * 40000)["verdict"] == "too_large"
 
-
-def test_over_html_limit_is_too_large_even_if_it_compresses():
-    assert tool.measure(b"a" * 40000)["verdict"] == "too_large"
-
-
-def test_examples_fit():
-    for example in (path.parents[1] / "examples").glob("*.html"):
-        assert tool.measure(example.read_bytes())["verdict"] != "too_large", example
+    def test_examples_fit(self):
+        for example in (path.parents[1] / "examples").glob("*.html"):
+            assert tool.measure(example.read_bytes())["verdict"] != "too_large", example

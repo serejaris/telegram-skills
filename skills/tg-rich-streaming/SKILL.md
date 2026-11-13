@@ -9,8 +9,17 @@ license: MIT
 Stream AI-generated text into a Telegram private chat with native draft animation and a "thinking" indicator — the same UX as ChatGPT or Claude, directly inside the bot.
 
 Sending requires network access to `api.telegram.org` and `TELEGRAM_BOT_TOKEN`.
-`sendRichMessageDraft` works only with a private integer `chat_id`. Bot API 10.2 also permits
-direct `InputRichMessage.blocks`; the draft lifecycle below is unchanged.
+Checked against the official docs on 2026-10-30: Bot API 10.3 (latest, August 24, 2026). Nothing here was run against a live bot.
+
+| Method | Content | Since | Finalize with |
+|---|---|---|---|
+| `sendMessageDraft` | plain `text` 0–4096, `parse_mode` or `entities`; empty `text` shows a "Thinking…" placeholder | 9.3, all bots since 9.5 | `sendMessage` |
+| `sendRichMessageDraft` | `InputRichMessage`, including `<tg-thinking>` | 10.1 | `sendRichMessage` |
+
+Both work only with a private integer `chat_id`. Both take `draft_id`, `message_thread_id`,
+`can_stop` and `keep_on_stop`, and both drafts live 30 seconds. Bot API 10.2 also permits direct
+`InputRichMessage.blocks`; the draft lifecycle below is unchanged. A rich draft can't upload new
+files or upload by URL, so media in a draft must already have a `file_id`.
 
 ## Core pattern
 
@@ -95,6 +104,57 @@ POST /editMessageText
 
 > `text` and `rich_message` are mutually exclusive in `editMessageText` — use exactly one.
 
+> An edit through `rich_message` can drop custom emoji while returning `ok: true`: [tdlib #865](https://github.com/tdlib/telegram-bot-api/issues/865) (open, status checked 2026-10-30). Finalization through `sendRichMessage` isn't affected; this step and the group fallback are.
+
+---
+
+## Stop button (10.3)
+
+Pass `can_stop: true` on every draft call to show a button that stops further drafts. When the
+user presses it, the bot receives the `stopped_message_generation` update
+(`MessageGenerationStopped`: `chat`, `message_thread_id`, `draft_id`).
+
+1. Add `stopped_message_generation` to `allowed_updates`, if the bot sets that list.
+2. Match the update to the running stream by `chat.id`, `message_thread_id` and `draft_id`.
+3. Cancel the model call and stop sending drafts.
+4. To keep the partial text, pass `keep_on_stop: true` on the draft calls and send the text as a
+   new message. `keep_on_stop` alone isn't persistence: the draft still disappears after a short
+   time or when the bot sends a message.
+
+```
+POST /sendMessageDraft
+{
+  "chat_id": <integer>,
+  "draft_id": 42,
+  "text": "Partial answer so far",
+  "can_stop": true,
+  "keep_on_stop": true
+}
+```
+
+---
+
+## Topics in private chats
+
+`message_thread_id` targets a topic when the bot has forum topic mode enabled in private chats.
+`getMe` reports it in `has_topics_enabled`. Check two things before you turn it on:
+
+- **Money.** Under the [Bot Developer Terms](https://telegram.org/tos/bot-developers), §6.2.6, all
+  Telegram Stars purchases in a bot with topics in private chats enabled carry a non-refundable
+  15% fee, withheld by Telegram while the option stays on. A bot that sells for Stars pays it on
+  every purchase.
+- **Dead topics.** `createForumTopic` can succeed while the new topic answers
+  "message thread not found" to every bot write and `TOPIC_ID_INVALID` to `deleteForumTopic`:
+  [tdlib #905](https://github.com/tdlib/telegram-bot-api/issues/905) (practitioner report, filed
+  2026-09-29, open on 2026-10-30, three episodes across several hundred topics). Handle the failed first write
+  and create a replacement topic.
+
+Whether streaming needs topics, the sources disagree. Terms §6.2.6 still ties "the streaming of
+message drafts" to topics in private chats and the 15% fee; the
+[Bot API 9.5 changelog](https://core.telegram.org/bots/api-changelog) allowed all bots to use
+`sendMessageDraft`. Follow the changelog for the method, and read §6.2.6 before enabling topics on
+a selling bot. Neither was tested live.
+
 ---
 
 ## Pitfalls
@@ -107,6 +167,8 @@ POST /editMessageText
 | `RichBlockThinking` in `sendRichMessage` | Not stored in Message; spec prohibits it | Remove Thinking block before finalization |
 | Partial Markdown mid-stream | Unclosed `` ``` `` or `**` renders broken | Either send complete blocks only, or use raw text during streaming and apply Markdown only at finalization |
 | 30-second window expires mid-stream | Draft gone | If stream is slow, send a keep-alive draft update (even unchanged text) before the window closes |
+| Stream keeps running after the user pressed Stop | Tokens are spent, drafts keep coming | Handle `stopped_message_generation` and cancel the model call |
+| `keep_on_stop` treated as saved text | The draft disappears after a short time | Send the partial text as a new message |
 
 ---
 
@@ -124,10 +186,23 @@ No real-time animation, but the final message is rich-formatted.
 ## Request reference
 
 ```
+sendMessageDraft      POST /bot<TOKEN>/sendMessageDraft
+  chat_id            Integer   required — private chat only
+  message_thread_id  Integer   optional
+  draft_id           Integer   required — non-zero; same id = animated update
+  text               String    optional — 0-4096; empty shows "Thinking…"
+  parse_mode         String    optional
+  entities           Array of MessageEntity   optional
+  can_stop           Boolean   optional — show the stop button
+  keep_on_stop       Boolean   optional — keep the draft briefly after stop
+
 sendRichMessageDraft  POST /bot<TOKEN>/sendRichMessageDraft
-  chat_id        Integer   required — private chat only
-  draft_id       Integer   required — non-zero; same id = animated update
-  rich_message   InputRichMessage   required
+  chat_id            Integer   required — private chat only
+  message_thread_id  Integer   optional
+  draft_id           Integer   required — non-zero; same id = animated update
+  rich_message       InputRichMessage   required
+  can_stop           Boolean   optional — show the stop button
+  keep_on_stop       Boolean   optional — keep the draft briefly after stop
 
 sendRichMessage       POST /bot<TOKEN>/sendRichMessage
   chat_id        Integer or String   required
